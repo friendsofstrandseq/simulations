@@ -1,31 +1,14 @@
 {
     "chromosomes"   : ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22"],
 
-    "reference"     : "/g/korbel/shared/datasets/refgenomes/human/hg19_chr1_22XYM.fa",
     "mosaicatcher"  : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/build/mosaicatcher",
     "plot_script"   : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/qc.R",
-    "plot_segments" : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/plot_segments.R",
-    "sv_plot_script": "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/svs.R",
-    "sce_script"    : "/g/korbel/meiers/tools/mosaicatcher/strandsequtils/sce_utils/SCE.R",
-    "samtools"      : "samtools",
-    "bcftools"      : "bcftools",
-
-    "snv_calls"     : {},
-
-    "exclude_file"  : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/data/exclude/hg19.exclude",
-    "variable_bins" : {
-        "50000"     : "utils/variable_bins.GRCh38.50kb.bed",
-        "100000"    : "utils/variable_bins.GRCh38.100kb.bed"
-    },
-    "R_reference"   : "BSgenome.Hsapiens.UCSC.hg38",
 
     "bp_density"    : {
         "few"       : 0.1,
         "medium"    : 0.25,
-        "many"      : 0.5
+        "many"      : 0.45
     },
-
-    "paired_end"    : false,
 
     "simulation_min_vaf" : 0.01,
     "simulation_max_vaf" : 1.0,
