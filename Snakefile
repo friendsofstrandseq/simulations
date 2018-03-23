@@ -40,15 +40,6 @@ rule simul:
 # Simulation of count data                                                     #
 ################################################################################
 
-rule evaluate_simulation:
-    input:
-        prob = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
-        simul = "simulation/variants/genome{seed}-{binsize}.txt"
-    output:
-        "evaluation/simulation{seed}_{binsize}.{segments}.{method}.pdf"
-    script:
-        "utils/evaluate_simulation.R"
-
 rule simulate_genome:
     output:
         tsv="simulation/genome/genome{seed}.tsv"
@@ -170,23 +161,16 @@ rule plot_mosaic_counts:
         {params.plot_command} {input.counts} {input.info} {output} > {log} 2>&1
         """
 
-rule plot_SV_calls:
+rule plot_SV_calls_new:
     input:
-        counts = "counts/{sample}/{windows}.txt.gz",
-        probs  = "sv_calls/{sample}/{windows}.{segments}/{method}.txt"
+        counts = "counts/simulation{seed}-{binsize}/{binsize}_fixed.txt.gz",
+        segs   = "segmentation2/simulation{seed}-{binsize}/{binsize}_fixed.{segments}.txt",
+        svs    = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
+        simul  = "simulation/variants/genome{seed}-{binsize}.txt"
     output:
-        expand("sv_calls/{{sample}}/{{windows}}.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
-    log:
-        "log/{sample}/plot_SV_call.{windows}.{segments}.txt"
-    params:
-        plot_command = "Rscript " + config["sv_plot_script"]
-    shell:
-        """
-        {params.plot_command} \
-            {input.counts} {input.probs} \
-            sv_calls/{wildcards.sample}/{wildcards.windows}.{wildcards.segments} \
-            > {log} 2>&1
-        """
+        expand("sv_calls/simulation{{seed}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
+    script:
+        "utils/plot_sv_calls.R"
 
 
 ################################################################################
@@ -208,23 +192,6 @@ rule segmentation:
         -o {output} \
         {input} > {log} 2>&1
         """
-
-rule plot_segmentation:
-    input:
-        counts = "counts/{sample}/{file_name}.txt.gz",
-        segments = "segmentation/{sample}/{file_name}.txt"
-    output:
-        "segmentation/{sample}/{file_name}/{chrom}.pdf"
-    log:
-        "log/{sample}/plot_segmentation.{file_name}.{chrom}.txt"
-    params:
-        command = config["plot_segments"]
-    shell:
-        """
-        Rscript {params.command} {input.counts} {input.segments} {wildcards.chrom} {output} > {log} 2>&1
-        """
-
-
 
 # Pick a few segmentations and prepare the input files for SV classification
 rule prepare_segments:
@@ -254,7 +221,7 @@ rule install_MaRyam:
         TAR=$(which tar) Rscript utils/install_maryam.R > {log} 2>&1
         """
 
-rule run_sv_classification:
+rule sv_classifier_maryam:
     input:
         maryam = "utils/R-packages2/MaRyam/R/MaRyam",
         counts = "counts/{sample}/{windows}.txt.gz",
@@ -300,9 +267,11 @@ rule convert_SVprob_output:
     script:
         "utils/helper.convert_svprob_output.R"
 
+
+
 ### New SV classification
 
-rule run_sv_classification_preparation:
+rule sv_classifier_preparation:
     input:
         counts = "counts/{sample}/{windows}.txt.gz",
         info   = "counts/{sample}/{windows}.info",
@@ -322,3 +291,17 @@ rule sv_classifier_simple:
     shell:
         "echo 'work in progress'"
 
+
+
+################################################################################
+# Evaluation of MosaiCatcher                                                   #
+################################################################################
+
+rule evaluate_simulation:
+    input:
+        prob = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
+        simul = "simulation/variants/genome{seed}-{binsize}.txt"
+    output:
+        "evaluation/simulation{seed}_{binsize}.{segments}.{method}.pdf"
+    script:
+        "utils/evaluate_simulation.R"

@@ -31,15 +31,33 @@ d$cell = b[d$cells,]$cell_name
 d$sample = sample
 d
 
+# Get log likelihood ratio of major SV classes
 d <- d[, .(chrom = chr,
-           start = format(start,scientific=F),
-           end   = format(end,scientific=F),
-           sample, cell, 
-           type = toupper(types), w = Wcount, c = Ccount,
-           p_cn0 = CN0, p_cn1 = CN1, p_cn2 = CN2, p_cn3 = CN3, p_cn4 = CN4,
-           p_ref = `1010`, p_del_hom = `0000`, p_del_h1 = `0010`, p_del_h2 = `1000`,
-           p_inv_hom = `0101`, p_inv_h1 = `0110`, p_inv_h2 = `1001`,
-           p_dup_hom = `2020`, p_dup_h1 = `2010`, p_dup_h2 = `1020`,
-           p_idup_h1 = `1110`, p_idup_h2 = `1011`)]
-d
-write.table(d, file = snakemake@output[[1]], quote=F, col.names = T, row.names = F, sep = "\t")
+           start = format(start, scientific=F),
+           end   = format(end, scientific=F),
+           sample, 
+           cell, 
+           type = toupper(types),
+           p_del_hom = log(`0000`) - log(`1010`), 
+           p_del_h1  = log(`0010`) - log(`1010`), 
+           p_del_h2  = log(`1000`) - log(`1010`),
+           p_inv_hom = log(`0101`) - log(`1010`), 
+           p_inv_h1  = log(`0110`) - log(`1010`), 
+           p_inv_h2  = log(`1001`) - log(`1010`),
+           p_dup_hom = log(`2020`) - log(`1010`), 
+           p_dup_h1  = log(`2010`) - log(`1010`), 
+           p_dup_h2  = log(`1020`) - log(`1010`)) ]
+
+
+# keep only entries with an SV call
+# log likelihood ratio >= 1
+LLR = 1
+e = melt(d, 
+         id.vars = c("chrom","start","end","sample","cell"), 
+         measure.vars = c("p_del_h1", "p_del_h2", "p_inv_hom", "p_inv_h1", "p_inv_h2", "p_dup_hom", "p_dup_h1", "p_dup_h2"),
+         variable.name = "SV_class",
+         value.name    = "loglik",
+         variable.factor = F)
+e[loglik>= LLR, .SD[order(loglik, decreasing = T)][1,], by = .(chrom, start, end, sample, cell)]
+e[, SV_class := substr(SV_class,3,nchar(SV_class))]
+write.table(e, file = snakemake@output[[1]], quote=F, col.names = T, row.names = F, sep = "\t")
