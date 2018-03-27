@@ -23,7 +23,7 @@ rule simul:
         expand("plots/simulation{seed}-{binsize}/{binsize}_fixed.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW),
-        expand("evaluation/simulation{seed}_{binsize}.{segments}.{method}.pdf",
+        expand("sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf",
                 seed  = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW,
                 segments = ["few","medium"],
@@ -302,6 +302,6 @@ rule evaluate_simulation:
         calls = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
         simul = "simulation/variants/genome{seed}-{binsize}.txt"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/{method}.pdf"
+        "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf"
     script:
         "utils/evaluate_simulation.R"
