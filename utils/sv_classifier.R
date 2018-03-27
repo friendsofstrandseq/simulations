@@ -140,14 +140,16 @@ PRIORS = c(ref     = 0.77,
            hetDel  = 0.05, 
            homDel  = 0.01,
            hetIdup = 0.01)
-probs[, `:=`(p_ref    = p_ref    + log(PRIORS["ref"]),
-             p_homInv = p_homInv + log(PRIORS["homInv"]),
-             p_hetInv = p_hetInv + log(PRIORS["hetInv"]),
-             p_hetDup = p_hetDup + log(PRIORS["hetDup"]),
-             p_homDel = p_homDel + log(PRIORS["homDel"]),
-             p_hetDel = p_hetDel + log(PRIORS["hetDel"]))]
+probs[, `:=`(p_ref     = p_ref     + log(PRIORS["ref"]),
+             p_homInv  = p_homInv  + log(PRIORS["homInv"]),
+             p_hetInv  = p_hetInv  + log(PRIORS["hetInv"]),
+             p_hetDup  = p_hetDup  + log(PRIORS["hetDup"]),
+             p_homDup  = p_homDup  + log(PRIORS["homDup"]),
+             p_homDel  = p_homDel  + log(PRIORS["homDel"]),
+             p_hetDel  = p_hetDel  + log(PRIORS["hetDel"]),
+             p_hetIdup = p_hetIdup + log(PRIORS["hetIdup"]))]
 # Add log likelihood ratio log( p(SV) / p(REF) )
-probs[,max_loklikratio := pmax(p_hetInv, p_hetDel, p_hetDup, p_homDel, p_homDup, p_homInv) - p_ref]
+probs[,max_loklikratio := pmax(p_hetInv, p_hetDel, p_hetDup, p_homDel, p_homDup, p_hetIdup) - p_ref]
 
 probs[, `:=`(start = bins[from]$start, end = bins[to]$end)]
 saveRDS(probs, snakemake@output[[1]])

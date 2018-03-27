@@ -283,13 +283,13 @@ rule sv_classifier_preparation:
         "utils/sv_classifier.R"
 
 
-rule sv_classifier_simple:
+rule sv_classifier_mostsimple:
     input:
         "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
     output:
         prob = "sv_calls/{sample}/{windows}.{bpdens}/simple.txt"
-    shell:
-        "echo 'work in progress'"
+    script:
+        "utils/sv_classifier_mostsimple.R"
 
 
 
@@ -299,9 +299,9 @@ rule sv_classifier_simple:
 
 rule evaluate_simulation:
     input:
-        prob = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
+        calls = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
         simul = "simulation/variants/genome{seed}-{binsize}.txt"
     output:
-        "evaluation/simulation{seed}_{binsize}.{segments}.{method}.pdf"
+        "sv_calls/{sample}/{windows}.{bpdens}/{method}.pdf"
     script:
         "utils/evaluate_simulation.R"
