@@ -1,61 +1,28 @@
 library(data.table)
+library(dplyr)
 library(assertthat)
 library(ggplot2)
 library(cowplot)
 library(scales)
 
-MIN_LLR = 0.5   # min. log likelihood ratio of SV prob. over REF prob.
-MIN_RCO = 0.7   # min. reciprocal overlap of true and detected SV
+MIN_RCO = 0.8   # min. reciprocal overlap of true and detected SV
 
-#sv_input = "sv_probabilities/simulation7-100000/100000_fixed.few/probabilities.txt"
-#real_input = "simulation/variants/genome7-100000.txt"
-sv_input = snakemake@input[["prob"]]
+# sv_input = "sv_calls/simulation5-50000/50000_fixed.few/simple.txt"
+# real_input = "simulation/variants/genome5-50000.txt"
+sv_input = snakemake@input[["calls"]]
 real_input = snakemake@input[["simul"]]
 
 
 svs = fread(sv_input)
 real = fread(real_input)
 
-
-### call SVs from SV probabilities
-
-# rename p_ref column to be distinguished from SV classes
-svs[, `:=`(ref_prob = p_ref, p_ref = NULL) ]
-
-# melt to one entry per SV class
-svs = melt.data.table(svs, measure.vars = colnames(svs)[grepl('^p_', colnames(svs))], variable.name = "SV_class", value.name = "SV_prob", variable.factor = FALSE)
-
-# Rename called SV classes
-unique(svs$SV_class)
-svs <- svs[SV_class %in% c("p_inv_hom", "p_inv_h1", "p_inv_h2", "p_del_hom", "p_del_h1",  "p_del_h2", "p_dup_hom", "p_dup_h1", "p_dup_h2", "p_idup_h1", "p_idup_h2") ]
-svs[SV_class == "p_inv_hom", SV_class := "hom_inv"]
-svs[SV_class == "p_inv_h1", SV_class := "het_inv"]
-svs[SV_class == "p_inv_h2", SV_class := "het_inv"]
-svs[SV_class == "p_del_hom", SV_class := "hom_del"]
-svs[SV_class == "p_del_h1", SV_class := "het_del"]
-svs[SV_class == "p_del_h2", SV_class := "het_del"]
-svs[SV_class == "p_dup_hom", SV_class := "hom_dup"]
-svs[SV_class == "p_dup_h1", SV_class := "het_dup"]
-svs[SV_class == "p_dup_h2", SV_class := "het_dup"]
-svs[SV_class == "p_idup_h1", SV_class := "inv_dup"]
-svs[SV_class == "p_idup_h2", SV_class := "inv_dup"]
-
-
-# cast again to one entry per locus and cell, now with 
-setkey(svs, chrom, start, end, sample, cell)
-svs = svs[, .(SV_class = SV_class[which.max(SV_prob)],
-      SV_llr   = log(max(SV_prob)) - log(ref_prob[1])), 
-  by = .(chrom, start, end, sample, cell)]
-
-
-
 ### Find reciprocal overlap of SV calls and true SVs
 
 # list of simulated loci (only chrom, start, end)
 LOCI = real[, .(VAF = .N), by = .(chrom, start, end, SV_type)]
 
-# list of predicted loci (chrom, start, end) --> only use real SV calls here (MIN_LLR criterion) !
-called_loci = unique(svs[SV_llr >= MIN_LLR, .(chrom, start, end)])
+# list of predicted loci (chrom, start, end) --> only use real SV calls here!
+called_loci = unique(svs[, .(chrom, start, end)])
 
 # Merge all combinations of loci by chromosoems ...
 combined = merge(LOCI[, .(chrom, start, end)],
@@ -74,15 +41,18 @@ LOCI = merge(LOCI,
              combined[recovl >= MIN_RCO],
              by = c("chrom","start","end"), all.x = T)
 LOCI[, id := 1:.N]
-assert_that(all(LOCI[,.(chrom, start, end)] == unique(real[, .(chrom, start, end)])))
+assert_that(all(LOCI[,.(chrom, start, end)] == unique(real[, .(chrom, start, end)]))) %>% invisible
 
-
-### Determine sensitivity (recall)
-# annotate "real" and "svs" with locus ids for easier overlap
-# Note: svs contains also non-SV loci. Always filter by SV_llr >= MIN_LLR
-#
 real = merge(real, LOCI[, .(chrom, start, end, id)], by =c("chrom","start","end"), all = T)
 svs  = merge(svs, LOCI[, .(chrom, start = start.call, end = end.call, id)], by =c("chrom","start","end"), all.x = T)
+
+
+# Rename SV_classes
+rename_svs = data.table(SV_class =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1",  "idup_h2"),
+                        SV_class_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "het_idup", "het_idup"))
+assert_that(all(svs$SV_class %in% rename_svs$SV_class)) %>% invisible
+svs = merge(svs, rename_svs, by = "SV_class")
+svs[, `:=`(SV_class = SV_class_renamed, SV_class_renamed = NULL)]
 
 
 
@@ -92,7 +62,7 @@ svs  = merge(svs, LOCI[, .(chrom, start = start.call, end = end.call, id)], by =
 # recall    = svs correctly detected / svs simulated
 #
 recall = merge(real[, .(id, sample, cell, simulated = SV_type)], 
-               svs[!is.na(id) & SV_llr >= MIN_LLR, .(id, sample, cell, called = SV_class)], 
+               svs[!is.na(id), .(id, sample, cell, called = SV_class)], 
                by = c("id","sample","cell"), all.x = T)
 recall = recall[, .(recall.correct = sum(simulated[!is.na(called)] == called[!is.na(called)]), 
                     recall.any = sum(!is.na(called)), 
@@ -105,21 +75,23 @@ LOCI = merge(LOCI, recall, by = "id")
 # Precision
 # precision = svs correctly detected / all detected svs
 # First get all calls that do not match simulated SV
-spurious_calls = svs[SV_llr >= MIN_LLR,
-                     .N,
-                     by = .(chrom, start, end, id, SV_class)] # all loci, all classes
+spurious_calls = svs[, .N, by = .(chrom, start, end, id, SV_class)] # all loci, all classes
+
 # There are also some calls that overlap SVs (by at least 0.1 %) without fully matching them
 twighlight_loci = combined[recovl >= 0.001,
                            .(chrom, start = start.call, end = end.call, twighlight = T)]
+
 # add these overlapping loci to the list of spurious calls
 spurious_calls = merge(spurious_calls,
                        twighlight_loci,
                        by = c("chrom","start","end"),
                        all.x = T)
+
 message("Summary of spurious loci either matching or at least overlapping simulated SVs")
 table(factor(is.na(spurious_calls$id), c(T,F), c("No SV match", "SV match")),
       factor(is.na(spurious_calls$twighlight), c(T,F), c("no SV overlap", "SV overlap")))
-assert_that(nrow(spurious_calls[!is.na(id) & is.na(twighlight),]) == 0)
+assert_that(nrow(spurious_calls[!is.na(id) & is.na(twighlight),]) == 0) %>% invisible
+
 # Only keep the actual spurious calls, i.e. the ones that do not match a simulated SV
 # (because they have no ID) OR the ones that are in the twighlight zone (!i.sna(twighlight))
 spurious_calls = spurious_calls[is.na(twighlight) | is.na(id),]
@@ -132,7 +104,6 @@ spurious_calls[, size := factor((end - start) < 1e6, c(T,F), c("< 1Mb", ">= 1Mb"
 
 
 ### PLOTS ###
-
 
 
 # Plot: number of breakpoints that were detected
