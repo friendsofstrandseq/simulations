@@ -125,9 +125,10 @@ probs <- add_NB_probs(probs)
 
 message("[SV classifier] Post-processing NB probabilities, e.g. adding a prior")
 probs[state == "sce", `:=`(p_ref     = -1000, 
-                           p_homInv  = -1000, 
                            p_hetInv  = -1000, 
-                           p_hetDel  = -1000,
+                           p_homInv  = -1000, 
+                           p_hetDup  = -1000,
+                           p_homDup  = -1000,
                            p_hetDel  = -1000, 
                            p_homDel  = -1000,
                            p_hetIdup = -1000)]
