@@ -58,6 +58,6 @@ e = melt(d,
          variable.name = "SV_class",
          value.name    = "loglikratio",
          variable.factor = F)
-e = e[loglik>= LLR, .SD[order(loglikratio, decreasing = T)][1,], by = .(chrom, start, end, sample, cell)]
+e = e[loglikratio>= LLR, .SD[order(loglikratio, decreasing = T)][1,], by = .(chrom, start, end, sample, cell)]
 e[, SV_class := substr(SV_class,3,nchar(SV_class))]
 write.table(e, file = snakemake@output[[1]], quote=F, col.names = T, row.names = F, sep = "\t")
