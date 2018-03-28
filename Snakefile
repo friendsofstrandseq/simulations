@@ -13,7 +13,7 @@ wildcard_constraints:
 
 
 SIMUL_WINDOW = [50000]
-SIMUL_SEEDS  = [5]
+SIMUL_SEEDS  = [5,6,7,8]
 METHODS      = ["maryam", "simple"]
 CHROMOSOMES  = config['chromosomes']
 
@@ -51,7 +51,7 @@ rule simulate_genome:
         maxsize     = 5000000,
         mindistance = 1000000,
     shell:
-        "utils/simulate_SVs.R {wildcards.seed} {params.svcount} {params.minsize} {params.maxsize} {params.mindistance} {output.tsv} > {log} 2>&1"
+        "Rscript utils/simulate_SVs.R {wildcards.seed} {params.svcount} {params.minsize} {params.maxsize} {params.mindistance} {output.tsv} > {log} 2>&1"
 
 rule add_vafs_to_simulated_genome:
     input:
