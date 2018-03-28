@@ -57,7 +57,7 @@ manual_colors = c(  # duplications
                   idup_h2         = muted("darkgoldenrod2", 80, 70),
                     # background
                   bg1 = "#ffffff",
-                  bg2 = "#cccccc")
+                  bg2 = "khaki2")
 
 
 
@@ -165,7 +165,7 @@ for (CHROM in unique(counts[, chrom])) {
         # Add background colors:
         if (nrow(local_seg)>0) {
             plt <- plt +
-                geom_rect(data = local_seg, alpha = 0.3,
+                geom_rect(data = local_seg, alpha = 0.4,
                           aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf, fill = SV_class)) 
         }
         if (nrow(local_svs)>0) {
