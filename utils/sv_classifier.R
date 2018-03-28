@@ -123,31 +123,6 @@ probs[, scalar := 1]
 message("[SV classifier] Annotating NB probabilities")
 probs <- add_NB_probs(probs)
 
-message("[SV classifier] Post-processing NB probabilities, e.g. adding a prior")
-probs[state == "sce", `:=`(p_ref     = -1000, 
-                           p_hetInv  = -1000, 
-                           p_homInv  = -1000, 
-                           p_hetDup  = -1000,
-                           p_homDup  = -1000,
-                           p_hetDel  = -1000, 
-                           p_homDel  = -1000,
-                           p_hetIdup = -1000)]
-PRIORS = c(ref     = 0.77, 
-           homInv  = 0.05, 
-           hetInv  = 0.05, 
-           hetDup  = 0.05,
-           homDup  = 0.01,
-           hetDel  = 0.05, 
-           homDel  = 0.01,
-           hetIdup = 0.01)
-probs[, `:=`(p_ref     = p_ref     + log(PRIORS["ref"]),
-             p_homInv  = p_homInv  + log(PRIORS["homInv"]),
-             p_hetInv  = p_hetInv  + log(PRIORS["hetInv"]),
-             p_hetDup  = p_hetDup  + log(PRIORS["hetDup"]),
-             p_homDup  = p_homDup  + log(PRIORS["homDup"]),
-             p_homDel  = p_homDel  + log(PRIORS["homDel"]),
-             p_hetDel  = p_hetDel  + log(PRIORS["hetDel"]),
-             p_hetIdup = p_hetIdup + log(PRIORS["hetIdup"]))]
 # Add log likelihood ratio log( p(SV) / p(REF) )
 probs[,max_loklikratio := pmax(p_hetInv, p_hetDel, p_hetDup, p_homDel, p_homDup, p_hetIdup) - p_ref]
 
