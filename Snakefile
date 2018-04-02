@@ -7,16 +7,19 @@ wildcard_constraints:
     seed     = "\d+",
     windows  = "\d+_[a-zA-Z]+",
     chrom    = "[chr0-9XY]+",
-    segments = "[a-zA-Z]+",
+    segments = "[a-zA-Z0-9]+",
     method   = "[a-zA-Z0-9_]+"
 
 
 
 SIMUL_WINDOW = [50000]
-SIMUL_SEEDS  = [5,6,7,8]
+SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9]
 METHODS      = ["maryam", "simple"]
 CHROMOSOMES  = config['chromosomes']
-
+ALL_SEGMENTS = ["fraction02", "fraction05", "fraction08", "fraction12", "fraction15", \
+                "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
+                "fraction45","fraction55","fraction65"]
+SEGMENTS     = ["fraction05","fraction15","fraction25"]
 
 rule simul:
     input:
@@ -26,12 +29,12 @@ rule simul:
         expand("sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf",
                 seed  = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW,
-                segments = ["few","medium"],
+                segments = ALL_SEGMENTS,
                 method = METHODS),
-        expand("sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
+        expand("sv_plots/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW,
-                segments = ["few","medium"],
+                segments = SEGMENTS,
                 chrom = CHROMOSOMES,
                 method = METHODS)
 
@@ -168,7 +171,7 @@ rule plot_SV_calls_new:
         svs    = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
         simul  = "simulation/variants/genome{seed}-{binsize}.txt"
     output:
-        expand("sv_calls/simulation{{seed}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
+        expand("sv_plots/simulation{{seed}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
     script:
         "utils/plot_sv_calls.R"
 

@@ -5,9 +5,19 @@
     "plot_script"   : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/qc.R",
 
     "bp_density"    : {
-        "few"       : 0.1,
-        "medium"    : 0.25,
-        "many"      : 0.45
+	    "fraction02" : 0.02,
+        "fraction05" : 0.05,
+		"fraction08" : 0.08,
+		"fraction12" : 0.12,
+		"fraction15" : 0.15,
+		"fraction18" : 0.18,
+		"fraction20" : 0.20,
+		"fraction25" : 0.25,
+		"fraction30" : 0.30,
+		"fraction35" : 0.35,
+		"fraction45" : 0.45,
+		"fraction55" : 0.55,
+		"fraction65" : 0.65
     },
 
     "simulation_min_vaf" : 0.01,
