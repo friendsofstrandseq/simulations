@@ -308,3 +308,15 @@ rule evaluate_simulation:
         "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf"
     script:
         "utils/evaluate_simulation.R"
+
+
+rule new_evaluation:
+    input:
+        truth = expand("simulation/variants/genome{seed}-{{binsize}}.txt", \
+                       seed = SIMUL_SEEDS),
+        calls = expand("sv_calls/simulation{seed}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt", \
+                       seed = SIMUL_SEEDS, segments = ALL_SEGMENTS)
+    output:
+        "results/evaluation_{binsize}_{method}.pdf"
+    script:
+        "utils/evaluation.R"
