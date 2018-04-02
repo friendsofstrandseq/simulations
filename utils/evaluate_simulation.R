@@ -48,8 +48,8 @@ svs  = merge(svs, LOCI[, .(chrom, start = start.call, end = end.call, id)], by =
 
 
 # Rename SV_classes
-rename_svs = data.table(SV_class =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1",  "idup_h2"),
-                        SV_class_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "het_idup", "het_idup"))
+rename_svs = data.table(SV_class =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1", "idup_h2"),
+                        SV_class_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "inv_dup", "inv_dup"))
 assert_that(all(svs$SV_class %in% rename_svs$SV_class)) %>% invisible
 svs = merge(svs, rename_svs, by = "SV_class")
 svs[, `:=`(SV_class = SV_class_renamed, SV_class_renamed = NULL)]
