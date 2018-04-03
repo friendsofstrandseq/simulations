@@ -153,10 +153,11 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
   
   
   # View centered on called SVs (precision)
-  precision = 3
-  y[is.na(truth_id)] %>% .[,.(max_overlap[1]),.(chrom,start,end)] %>% unique
+  message("[Precision/Recall] use number of loci that do not overlap SVs for precision!")
+  all_loci   = nrow(unique(y[, .(chrom, start, end)]))
+  wrong_loci = nrow(unique(y[is.na(truth_id) & max_overlap < 0.1, .(chrom, start, end)]))
+  precision  = (all_loci - wrong_loci)/all_loci
   
-  message("@work: precision")
   
   return(list(recall = recall,
               precision = precision))
@@ -174,6 +175,7 @@ categorization <- function(d, n_cells = 100) {
               "chrom" %in% colnames(d),
               "chrom" %in% colnames(d)) %>% invisible
   assert_that(n_cells >= max(d$SV_vaf)) %>% invisible
+
   d[, SV_size_factor := factor(cut(d$end - d$start, c(1e5, 2e5, 4e5, 8e5, 1.6e6, 3.2e6, 250e6)),
                               labels = c("100-200 kb", "200-400 kb", "400-800 kb", "0.8-1.6 Mb", "1.6-3.2 Mb",">3.2Mb"),
                               ordered = T)]

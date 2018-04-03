@@ -26,17 +26,15 @@ rule simul:
         expand("plots/simulation{seed}-{binsize}/{binsize}_fixed.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW),
-        expand("sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf",
-                seed  = SIMUL_SEEDS,
-                binsize = SIMUL_WINDOW,
-                segments = ALL_SEGMENTS,
-                method = METHODS),
         expand("sv_plots/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW,
                 segments = SEGMENTS,
                 chrom = CHROMOSOMES,
-                method = METHODS)
+                method = METHODS),
+        expand("results/evaluation_{binsize}_{method}.pdf",
+                binsize = [50000],
+                method  = ["maryam", "simple"])
 
 
 ################################################################################
@@ -299,15 +297,6 @@ rule sv_classifier_mostsimple:
 ################################################################################
 # Evaluation of MosaiCatcher                                                   #
 ################################################################################
-
-rule evaluate_simulation:
-    input:
-        calls = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
-        simul = "simulation/variants/genome{seed}-{binsize}.txt"
-    output:
-        "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.evaluation.pdf"
-    script:
-        "utils/evaluate_simulation.R"
 
 
 rule new_evaluation:
