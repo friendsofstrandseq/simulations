@@ -16,8 +16,8 @@ cells_per_page <- 8
 
 
 # f_counts   = "counts/simulation5-50000/50000_fixed.txt.gz"
-# f_segments = "segmentation2/simulation5-50000/50000_fixed.few.txt"
-# f_sv_calls = "sv_calls/simulation5-50000/50000_fixed.few/maryam.txt"
+# f_segments = "segmentation2/simulation5-50000/50000_fixed.fraction15.txt"
+# f_sv_calls = "sv_calls/simulation5-50000/50000_fixed.fraction15/biallelic.txt"
 # f_sv_simul = "simulation/variants/genome5-50000.txt"
 # f_out      = "sv_calls/simulation5-50000/50000_fixed.few/maryam"
 
