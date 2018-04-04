@@ -14,7 +14,7 @@ wildcard_constraints:
 
 SIMUL_WINDOW = [50000]
 SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9]
-METHODS      = ["maryam", "simple"]
+METHODS      = ["maryam", "simple", "biallelic"]
 CHROMOSOMES  = config['chromosomes']
 ALL_SEGMENTS = ["fraction02", "fraction05", "fraction08", "fraction12", "fraction15", \
                 "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
@@ -34,7 +34,7 @@ rule simul:
                 method = METHODS),
         expand("results/evaluation_{binsize}_{method}.pdf",
                 binsize = [50000],
-                method  = ["maryam", "simple"])
+                method  = METHODS)
 
 
 ################################################################################
@@ -291,6 +291,16 @@ rule sv_classifier_mostsimple:
         prob = "sv_calls/{sample}/{windows}.{bpdens}/simple.txt"
     script:
         "utils/sv_classifier_mostsimple.R"
+
+
+rule sv_classifier_biallelic:
+    input:
+        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
+    output:
+        prob = "sv_calls/{sample}/{windows}.{bpdens}/biallelic.txt"
+    script:
+        "utils/sv_classifier_biallelic.R"
+
 
 
 
