@@ -122,6 +122,8 @@ rename_SV_classes <- function(calls) {
 }
 
 
+# Here, recall is based on the features of the true SVs
+# and precision is based on the features of the called SVs !
 recall_precision <- function(truth, calls, rec_ovl = 0.8) {
   
   # Find overlapping SV calls
@@ -146,24 +148,27 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
                  all.x = T) %>%
     .[, .(SV_size = (end - start + 1)[1],
           SV_vaf = .N,
-          breakpoint_found = ifelse(any(is.na(called_id)), FALSE, TRUE),
+          matches_call = ifelse(any(is.na(called_id)), FALSE, TRUE),
           correct_gt = sum(!is.na(SV_found) & SV_real == SV_found),
           correct_sv = sum(!is.na(SV_found) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))), 
       by = .(chrom, start, end, truth_id, SV_real)]
-  
-  
-  # View centered on called SVs (precision)
-  precision = data.table(type_of_precision  = c("all loci",
-                                                paste0("Loci at ", rec_ovl*100,"% overlap"),
-                                                paste0("Loci at any overlap")),
-                         value_of_precision = c(nrow(unique(y[, .(chrom, start, end)])),
-                                                nrow(unique(y[ !is.na(truth_id), .(chrom, start, end)])),
-                                                nrow(unique(y[ max_overlap > 0,  .(chrom, start, end)])),
-                                                nrow(y),
-                                                nrow(y[!is.na(truth_id)]),
-                                                nrow(y[ max_overlap > 0,  .(chrom, start, end)])))
 
   
+  # View centered on called SVs (precision)
+  # Note that SV size and VAF are now defined based on the CALLED SVs !!! this can be slighlty counter-intuitive.
+  precision = merge(y[, .(called_id, sample, cell, chrom, start, end, SV_found = SV_class)],
+        x[, .(called_id, sample, cell, truth_id, SV_real = SV_type)],
+        by = c("called_id", "sample", "cell"),
+        all.x = T) %>%
+    .[, .(SV_size    = (end - start + 1)[1],
+          SV_vaf     = .N,
+          SV_found   = names(table(SV_found))[which.max(table(SV_found))],
+          matches_SV = ifelse(all(is.na(truth_id)), FALSE, TRUE),
+          correct_gt = sum(!is.na(SV_real) & SV_real == SV_found),
+          correct_sv = sum(!is.na(SV_real) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))),
+      by = .(chrom, start, end, called_id)]
+
+
   return(list(recall = recall,
               precision = precision))
 }
@@ -181,12 +186,15 @@ categorization <- function(d, n_cells = 100) {
               "chrom" %in% colnames(d)) %>% invisible
   assert_that(n_cells >= max(d$SV_vaf)) %>% invisible
 
-  d[, SV_size_factor := factor(cut(d$end - d$start, c(1e5, 2e5, 4e5, 8e5, 1.6e6, 3.2e6, 250e6)),
-                              labels = c("100-200 kb", "200-400 kb", "400-800 kb", "0.8-1.6 Mb", "1.6-3.2 Mb",">3.2Mb"),
+  d[, SV_size_factor := factor(cut(end - start, c(0, 2e5, 4e5, 8e5, 1.6e6, 3.2e6, 300e6)),
+                               levels = c("(0,2e+05]", "(2e+05,4e+05]", "(4e+05,8e+05]", "(8e+05,1.6e+06]", "(1.6e+06,3.2e+06]", "(3.2e+06,3e+08]"),
+                              labels = c("<200 kb", "200-400 kb", "400-800 kb", "0.8-1.6 Mb", "1.6-3.2 Mb",">3.2Mb"),
                               ordered = T)]
-  vaf_boarders = c(0,0.05,0.1,0.2,0.4,0.75,1)
+
+  vaf_boarders = c(0,0.05,0.1,0.2,0.5,1)
   d[, SV_vaf_factor := factor(cut(SV_vaf/n_cells, vaf_boarders),
-                              labels = paste0(vaf_boarders[1:6]*100, "-", vaf_boarders[2:7]*100, "%"),
+                              levels = c("(0,0.05]", "(0.05,0.1]", "(0.1,0.2]", "(0.2,0.5]", "(0.5,1]"),
+                              labels = paste0(vaf_boarders[1:5]*100, "-", vaf_boarders[2:6]*100, "%"),
                               ordered = T)]
   d
 }
