@@ -89,7 +89,8 @@ for (f in input.truth) {
 
 
 ### Read SV calls one by one
-Results = NULL
+Recall = NULL
+Precision = NULL
 regex = "sv_calls/simulation(\\d+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
 for (f in input.calls) {
   message("[Evaluation] Reading ", f)
@@ -105,45 +106,57 @@ for (f in input.calls) {
   # Get recall and precision
   truth_ = truth[SIMUL_simulation_id == as.integer(vars[2])]
   rp = recall_precision(truth_, d)
+  recall = rp[["recall"]]
+  precision = rp[["precision"]]
   
-  recall = categorization(rp[["recall"]])
+  # Major issue is that categorization does NOT work for precision. Only for recall
+  #recall = categorization(rp[["recall"]])
+
+  # Hence I go without categorization for now
   recall[, `:=`(SIMUL_simulation_id = as.integer(vars[2]),
                 SIMUL_window_size   = as.integer(vars[3]),
                 SIMUL_segmentation  = as.integer(vars[5]),
-                precision = rp[["precision"]],
                 method = vars[6])]
-  
-  Results = rbind(Results, recall)
+  precision[, `:=`(SIMUL_simulation_id = as.integer(vars[2]),
+                SIMUL_window_size   = as.integer(vars[3]),
+                SIMUL_segmentation  = as.integer(vars[5]),
+                method = vars[6])]
+
+  Recall = rbind(Recall, recall)
+  Precision = rbind(Precision, precision)
 }
 
-message("[Evaluation] Number of simulated cases:")
-table(Results[SIMUL_segmentation==2]$SV_vaf_factor, Results[SIMUL_segmentation==2]$SV_size_factor) %>% print
-
+Results
 
 # Summarize recall:
 xxx = Results[, .(N  = .N,
                   N_ = nrow(unique(.SD[,.(chrom, start, end)])),
                   breakpoint_found = sum(breakpoint_found)/.N,
                   correct_gt       = mean(correct_gt/SV_vaf),
-                  correct_gt_q1    = quantile(correct_gt/SV_vaf, 0.25),
-                  correct_gt_q2    = quantile(correct_gt/SV_vaf, 0.75),
-                  correct_sv       = mean(correct_sv/SV_vaf),
-                  precision = mean(unique(precision))),
-              by = .(SV_real, SV_vaf_factor, SV_size_factor, SIMUL_segmentation)]
+                  correct_sv       = mean(correct_sv/SV_vaf)),
+              by = .(SV_real, SIMUL_segmentation, method)]
 assert_that(xxx[, all(N == N_)]) %>% invisible
+xxx
 
+
+yyy = Precision[, .(loci_80  = .SD[type_of_precision == "Loci at 80% overlap", sum(value_of_precision)],
+              loci_any = .SD[type_of_precision == "Loci at any overlap", sum(value_of_precision)],
+              loci_all = .SD[type_of_precision == "all loci", sum(value_of_precision)]), 
+          by = SIMUL_segmentation]
+yyy[,`:=`(precision_80  = loci_80 / loci_all,
+          precision_any = loci_any / loci_all)]
+
+zzz = merge(xxx, yyy[,.(SIMUL_segmentation, precision_80, precision_any)], by = "SIMUL_segmentation")
 
 cairo_pdf(file = snakemake@output[[1]], width=16, height = 14, onefile=T)
-for (svclass in c("het_del","hom_del","het_dup","hom_dup","het_inv","hom_inv","inv_dup")) {
-  message("[Evaluation] Plotting ", svclass)
-  p <- ggplot(xxx[SV_real == svclass]) + 
-    aes(breakpoint_found, precision) +
-    geom_line() +
-    facet_grid(SV_size_factor ~ SV_vaf_factor) + 
-    geom_point(aes(col = SIMUL_segmentation)) +
-    geom_label(x=0, y=0, aes(label = paste0("N=",N)), hjust = 0, vjust = 0) +
+p <- ggplot(zzz) +
+    geom_line(aes(breakpoint_found, precision_80, col = SV_real)) +
+    geom_line(aes(correct_sv, precision_80, col = SV_real), linetype = "dashed") +
+    #geom_point(aes(breakpoint_found, precision, col = SIMUL_segmentation)) +
+    #geom_point(aes(breakpoint_found, correct_sv, col = SIMUL_segmentation)) +
+    #geom_label(x=0, y=0, aes(label = paste0("N=",N)), hjust = 0, vjust = 0) +
     theme_bw() + theme(legend.position = "bottom") +
-    ggtitle(svclass)
+    coord_cartesian(ylim = c(0,1), xlim = c(0,1))
   print(p)
 }
 dev.off()

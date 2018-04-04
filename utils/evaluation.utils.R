@@ -153,11 +153,16 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
   
   
   # View centered on called SVs (precision)
-  message("[Precision/Recall] use number of loci that do not overlap SVs for precision!")
-  all_loci   = nrow(unique(y[, .(chrom, start, end)]))
-  wrong_loci = nrow(unique(y[is.na(truth_id) & max_overlap < 0.1, .(chrom, start, end)]))
-  precision  = (all_loci - wrong_loci)/all_loci
-  
+  precision = data.table(type_of_precision  = c("all loci",
+                                                paste0("Loci at ", rec_ovl*100,"% overlap"),
+                                                paste0("Loci at any overlap")),
+                         value_of_precision = c(nrow(unique(y[, .(chrom, start, end)])),
+                                                nrow(unique(y[ !is.na(truth_id), .(chrom, start, end)])),
+                                                nrow(unique(y[ max_overlap > 0,  .(chrom, start, end)])),
+                                                nrow(y),
+                                                nrow(y[!is.na(truth_id)]),
+                                                nrow(y[ max_overlap > 0,  .(chrom, start, end)])))
+
   
   return(list(recall = recall,
               precision = precision))
