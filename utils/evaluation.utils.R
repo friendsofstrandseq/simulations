@@ -186,12 +186,12 @@ categorization <- function(d, n_cells = 100) {
               "chrom" %in% colnames(d)) %>% invisible
   assert_that(n_cells >= max(d$SV_vaf)) %>% invisible
 
-  d[, SV_size_factor := factor(cut(end - start, c(0, 2e5, 4e5, 8e5, 1.6e6, 3.2e6, 300e6)),
-                               levels = c("(0,2e+05]", "(2e+05,4e+05]", "(4e+05,8e+05]", "(8e+05,1.6e+06]", "(1.6e+06,3.2e+06]", "(3.2e+06,3e+08]"),
-                              labels = c("<200 kb", "200-400 kb", "400-800 kb", "0.8-1.6 Mb", "1.6-3.2 Mb",">3.2Mb"),
+  d[, SV_size_factor := factor(cut(end - start, c(0, 2.5e5, 5e5, 1e6, 300e6)),
+                               levels = c("(0,2.5e+05]", "(2.5e+05,5e+05]", "(5e+05,1e+06]", "(1e+06,3e+08]"),
+                              labels = c("<250 kb", "250-500 kb", "0.5-1 Mb", ">1 Mb"),
                               ordered = T)]
 
-  vaf_boarders = c(0,0.05,0.1,0.2,0.5,1)
+  vaf_boarders = c(0, 0.05, 0.1, 0.2, 0.5, 1)
   d[, SV_vaf_factor := factor(cut(SV_vaf/n_cells, vaf_boarders),
                               levels = c("(0,0.05]", "(0.05,0.1]", "(0.1,0.2]", "(0.2,0.5]", "(0.5,1]"),
                               labels = paste0(vaf_boarders[1:5]*100, "-", vaf_boarders[2:6]*100, "%"),

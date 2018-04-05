@@ -136,46 +136,44 @@ assert_that(all(!is.na(Precision$SV_size_factor)),
             all(!is.na(Precision$SV_vaf_factor))) %>% invisible
 
 
-
 # Summarize results:
 xxx = Recall[, .(N            = .N,
                  N_           = nrow(unique(.SD[,.(chrom, start, end)])),
                  matches_call = sum(matches_call)/.N,
                  correct_gt   = mean(correct_gt/SV_vaf),
                  correct_sv   = mean(correct_sv/SV_vaf)),
-              by = .(SV_real, SV_size_factor, SV_vaf_factor, SIMUL_segmentation, method, SV_real)]
+              by = .(SV_size_factor, SV_vaf_factor, SIMUL_segmentation, method)]
 assert_that(xxx[, all(N == N_)]) %>% invisible
 
+
 yyy = Precision[, .(N            = .N,
-                    N_           = nrow(unique(.SD[,.(chrom, start, end)])),
                     matches_SV   = sum(matches_SV)/.N,
                     correct_gt   = mean(correct_gt/SV_vaf),
                     correct_sv   = mean(correct_sv/SV_vaf)),
-                by = .(SV_size_factor, SV_vaf_factor, SIMUL_segmentation, method, SV_found)]
+                by = .(SV_size_factor, SV_vaf_factor, SIMUL_segmentation, method)]
 
-assert_that(yyy[, all(N >= N_)]) %>% invisible
 
-zzz = merge(xxx[,.(SIMUL_segmentation, method, SV_size_factor, SV_vaf_factor, SV_class = SV_real,
+zzz = merge(xxx[,.(SIMUL_segmentation, method, SV_size_factor, SV_vaf_factor,
                    N, recall1 = matches_call, recall2 = correct_sv, recall3 = correct_gt)],
-            yyy[,.(SIMUL_segmentation, method, SV_size_factor, SV_vaf_factor, SV_class = SV_found,
+            yyy[,.(SIMUL_segmentation, method, SV_size_factor, SV_vaf_factor,
                    N, precision1 = matches_SV, precision2 = correct_sv, precision3 = correct_gt)],
-            by = c("SIMUL_segmentation", "method", "SV_size_factor", "SV_vaf_factor", "SV_class"))
+            by = c("SIMUL_segmentation", "method", "SV_size_factor", "SV_vaf_factor"))
 
 
-cairo_pdf(file = snakemake@output[[1]], width=16, height = 14, onefile=T)
-for (svclass in c("het_del", "hom_del", "het_dup", "hom_dup", "het_inv", "hom_inv", "inv_dup")) {
-  p <- ggplot(zzz[SV_class == svclass]) +
+cairo_pdf(file = snakemake@output[[1]], width=16, height = 12, onefile=T)
+  p <- ggplot(zzz) +
+    geom_line(aes(recall2, precision2), linetype = "dashed", color = "darkgrey") +
+    geom_point(aes(recall2, precision2, col = SIMUL_segmentation), shape = 17) +
     geom_line(aes(recall1, precision1)) +
     geom_point(aes(recall1, precision1, col = SIMUL_segmentation)) +
-    geom_text(data = zzz[SV_class == svclass, .(min = min(N.y), max = max(N.y)), by = .(SV_size_factor, SV_vaf_factor)], 
+    geom_text(data = zzz[, .(min = min(N.y), max = max(N.y)),
+                         by = .(SV_size_factor, SV_vaf_factor)],
               x=0,y=0,hjust=0,vjust=0, aes(label = paste("Calls =",min,"-",max))) +
-    geom_text(data = zzz[SV_class == svclass, mean(N.x), by = .(SV_size_factor, SV_vaf_factor)], 
-              x=0,y=0.1,hjust=0,vjust=0, aes(label = paste("True SVs =",V1))) + 
-    facet_grid(SV_size_factor ~ SV_vaf_factor) +
+    geom_text(data = zzz[, mean(N.x),
+                         by = .(SV_size_factor, SV_vaf_factor)],
+              x=0,y=0.1,hjust=0,vjust=0, aes(label = paste("True SVs =",V1))) +
+    facet_grid(SV_vaf_factor ~ SV_size_factor) +
     theme_bw() + theme(legend.position = "bottom") +
-    coord_cartesian(ylim = c(0,1), xlim = c(0,1)) +
-    ggtitle(svclass)
+    coord_cartesian(ylim = c(0,1), xlim = c(0,1))
   print(p)
-  
-}
 dev.off()
