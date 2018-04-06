@@ -5,8 +5,12 @@ chroms/
 counts/
 log/
 plots/
+results/
 segmentation/
 segmentation2/
+simulation_new/
 strand_states/
+sv_calls/
+sv_plots/
 sv_probabilities/
 Snakefile~
