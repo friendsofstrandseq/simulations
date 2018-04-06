@@ -139,13 +139,14 @@ zzz = merge(xxx,yyy, suffixes = c(".recall", ".precision"),
 
 # Beatify data set prior to plotting
 format_Mb = function(x) {
-  ifelse(x>=1e6, 
+  y = ifelse(x>=1e6, 
          paste(round(x/1e6,1),"Mb"),
          ifelse(x>=1e3,
                 paste(round(x/1e3,1),"kb"),
                 paste(x, "bp")))
-  return (x)
+  return (y)
 }
+
 zzz[, SV_size := factor(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)),
                         levels = unique(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)))[order(unique(SIMUL_minsize))],
                         ordered = T)]
