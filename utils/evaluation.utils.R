@@ -6,13 +6,12 @@ find_overlapping_calls <- function(truth, calls, rec_ovl = 0.8) {
   assert_that(is.data.table(truth),
               "chrom"   %in% colnames(truth),
               "start"   %in% colnames(truth),
-              "end"     %in% colnames(truth),
-              "SV_type" %in% colnames(truth)) %>% invisible
+              "end"     %in% colnames(truth)) %>% invisible
+  assert_that(nrow(truth)>0) %>% invisible
   assert_that(is.data.table(calls),
               "chrom"   %in% colnames(calls),
               "start"   %in% colnames(calls),
-              "end"     %in% colnames(calls),
-              "SV_class" %in% colnames(calls)) %>% invisible
+              "end"     %in% colnames(calls)) %>% invisible
   
   
   
@@ -28,6 +27,14 @@ find_overlapping_calls <- function(truth, calls, rec_ovl = 0.8) {
   setkey(called_loci, chrom, start, end)
   called_loci[, called_id := 1:.N]
   
+  
+  ### 1b) When there are no calls
+  if (nrow(called_loci)==0) {
+    true_loci[, called_id := NA]
+    called_loci[, `:=`(truth_id = integer(), max_overlap = integer())]
+    return(list(true_loci = true_loci,
+                called_loci = called_loci))
+  }
   
   
   ### 2) Find overlap by generating all combinations of loci
@@ -112,7 +119,12 @@ find_overlapping_calls <- function(truth, calls, rec_ovl = 0.8) {
 }
 
 
+
+
 rename_SV_classes <- function(calls) {
+  if(nrow(calls)==0) {
+      return(calls)
+  }
   rename_svs = data.table(SV_class =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1", "idup_h2"),
                           SV_class_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "inv_dup", "inv_dup"))
   assert_that(all(calls$SV_class %in% rename_svs$SV_class)) %>% invisible
@@ -122,9 +134,23 @@ rename_SV_classes <- function(calls) {
 }
 
 
-# Here, recall is based on the features of the true SVs
-# and precision is based on the features of the called SVs !
+
+
 recall_precision <- function(truth, calls, rec_ovl = 0.8) {
+  
+  # Only allow if both tables are non-empty
+  assert_that(is.data.table(truth),
+              nrow(truth)>0,
+              "chrom"   %in% colnames(truth),
+              "start"   %in% colnames(truth),
+              "end"     %in% colnames(truth),
+              "SV_type" %in% colnames(truth)) %>% invisible
+  assert_that(is.data.table(calls),
+              nrow(calls) > 0,
+              "chrom"   %in% colnames(calls),
+              "start"   %in% colnames(calls),
+              "end"     %in% colnames(calls),
+              "SV_class" %in% colnames(calls)) %>% invisible
   
   # Find overlapping SV calls
   L = find_overlapping_calls(truth, calls, rec_ovl)
@@ -140,7 +166,7 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
             by = c("chrom", "start", "end"))
   y = rename_SV_classes(y)
   
-  
+ 
   # View centered on true SV calls (recall)
   recall = merge(x[, .(truth_id, sample, cell, chrom, start, end, called_id, SV_real = SV_type)],
                  y[, .(truth_id, sample, cell, SV_found = SV_class)],

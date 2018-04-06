@@ -3,36 +3,54 @@ import os.path
 
 
 wildcard_constraints:
-    binsize  = "\d+",
-    seed     = "\d+",
-    windows  = "\d+_[a-zA-Z]+",
-    chrom    = "[chr0-9XY]+",
-    segments = "[a-zA-Z0-9]+",
-    method   = "[a-zA-Z0-9_]+"
+    binsize   = "\d+",
+    seed      = "\d+",
+    windows   = "\d+_[a-zA-Z]+",
+    chrom     = "[chr0-9XY]+",
+    segments  = "[a-zA-Z0-9]+",
+    method    = "[a-zA-Z0-9_]+",
+    minsvsize = "\d+",
+    maxsvsize = "\d+",
+    minvaf    = "\d+",
+    maxvaf    = "\d+"
 
 
 
 SIMUL_WINDOW = [50000]
-SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9]
+SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 METHODS      = ["maryam", "simple", "biallelic"]
 CHROMOSOMES  = config['chromosomes']
 ALL_SEGMENTS = ["fraction02", "fraction05", "fraction08", "fraction12", "fraction15", \
                 "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
                 "fraction45","fraction55","fraction65"]
 SEGMENTS     = ["fraction05","fraction15","fraction25"]
+SIZE_RANGES  = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
+VAF_RANGES   = ["1-5", "5-10", "10-20", "20-50", "50-100"]
 
 rule simul:
     input:
+        # Overview plots of cells
         expand("plots/simulation{seed}-{binsize}/{binsize}_fixed.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW),
+
+        # Plot SV calls together with simulated variants per chromosome
         expand("sv_plots/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
                 seed   = SIMUL_SEEDS,
                 binsize = SIMUL_WINDOW,
                 segments = SEGMENTS,
                 chrom = CHROMOSOMES,
                 method = METHODS),
-        expand("results/evaluation_{binsize}_{method}.pdf",
+
+        # Evaluation curve that I designed during the hackathon
+        # (based on a simulation of mixed SV sizes and VAFs)
+        expand("results/evaluation_hackathon/{binsize}_{method}.pdf",
+                binsize = [50000],
+                method  = METHODS),
+
+        # New SV evaluation curves
+        # (based on separate simulations for SV sizes and VAFs)
+        expand("results/evaluation_new/{binsize}_{method}.pdf",
                 binsize = [50000],
                 method  = METHODS)
 
@@ -140,6 +158,97 @@ rule link_to_simulated_strand_states:
         f = os.path.basename(output.states)
         shell("cd {d} && ln -s ../../{input.sce} {f} && cd ../..")
 
+
+
+
+
+################################################################################
+# New Simulation of count data                                                 #
+################################################################################
+
+rule new_simulate_genome:
+    output:
+        "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/genome.tsv"
+    log:
+        "log/simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}.txt"
+    params:
+        svcount     =     200,
+        mindistance = 1000000
+    shell:
+        """
+        tmp=$(mktemp)
+        Rscript utils/simulate_SVs.R {wildcards.seed} {params.svcount} \
+            {wildcards.minsvsize} {wildcards.maxsvsize} {params.mindistance} $tmp \
+            > {log} 2>&1
+        awk -v minvaf={wildcards.minvaf} -v maxvaf={wildcards.maxvaf} \
+            -v seed={wildcards.seed} \
+            'BEGIN {{srand(seed); OFS="\\t"}}
+            {{ vaf = int(minvaf + 1.0 * rand() * (maxvaf - minvaf))/100.0; print $0, vaf}}' $tmp \
+        > {output} 2> {log}
+        """
+
+rule new_simulate_counts:
+    input:
+        config = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/genome.tsv"
+    output:
+        counts   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/counts-{binsize}.txt.gz",
+        segments = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/segments-{binsize}.txt",
+        phases   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/phases-{binsize}.txt",
+        info     = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/info-{binsize}.txt",
+        sce      = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/sce-{binsize}.txt",
+        variants = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/variants-{binsize}.txt",
+    params:
+        mc_command   = config["mosaicatcher"],
+        neg_binom_p  = neg_binom_p,
+        min_coverage = min_coverage,
+        max_coverage = max_coverage,
+        cell_count   = config["simulation_cell_count"],
+        alpha        = config["simulation_alpha"],
+    log:
+        "log/simulate_counts/genome{seed}-{binsize}.txt"
+    shell:
+        """
+            {params.mc_command} simulate \
+            -w {wildcards.binsize} \
+            --seed {wildcards.seed} \
+            -n {params.cell_count} \
+            -p {params.neg_binom_p} \
+            -c {params.min_coverage} \
+            -C {params.max_coverage} \
+            -a {params.alpha} \
+            -V {output.variants} \
+            -i {output.info} \
+            -o {output.counts} \
+            -U {output.segments} \
+            -P {output.phases} \
+            -S {output.sce} \
+            --sample-name simulation{wildcards.seed}-{wildcards.binsize} \
+            {input.config} > {log} 2>&1
+        """
+
+rule new_link_to_simulated_counts:
+    input:
+        counts = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/counts-{binsize}.txt.gz",
+        info   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/info-{binsize}.txt",
+    output:
+        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.txt.gz",
+        info   = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.info"
+    run:
+        d = os.path.dirname(output.counts)
+        count_file = os.path.basename(output.counts)
+        info_file  = os.path.basename(output.info)
+        shell("cd {d} && ln -s ../../{input.counts} {count_file} && ln -s ../../{input.info} {info_file} && cd ../..")
+
+
+rule new_link_to_simulated_strand_states:
+    input:
+        sce    = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/sce-{binsize}.txt",
+    output:
+        states = "strand_states/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/final.txt"
+    run:
+        d = os.path.dirname(output.states)
+        f = os.path.basename(output.states)
+        shell("cd {d} && ln -s ../../{input.sce} {f} && cd ../..")
 
 
 
@@ -309,13 +418,29 @@ rule sv_classifier_biallelic:
 ################################################################################
 
 
-rule new_evaluation:
+rule new_evaluation_hackathon:
     input:
         truth = expand("simulation/variants/genome{seed}-{{binsize}}.txt", \
                        seed = SIMUL_SEEDS),
         calls = expand("sv_calls/simulation{seed}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt", \
                        seed = SIMUL_SEEDS, segments = ALL_SEGMENTS)
     output:
-        "results/evaluation_{binsize}_{method}.pdf"
+        "results/evaluation_hackathon/{binsize}_{method}.pdf"
     script:
         "utils/evaluation.R"
+
+rule new_evaluation_newer_version:
+    input:
+        truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}/variants-{{binsize}}.txt",
+                       seed = [5,6,7],
+                       sizerange = SIZE_RANGES,
+                       vafrange  = VAF_RANGES),
+        calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
+                       seed = [5,6,7],
+                       sizerange = SIZE_RANGES,
+                       vafrange  = VAF_RANGES,
+                       segments = ALL_SEGMENTS),
+    output:
+        "results/evaluation_new/{binsize}_{method}.pdf"
+    script:
+        "utils/evaluation.stratified.R"
