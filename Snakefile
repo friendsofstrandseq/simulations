@@ -18,11 +18,11 @@ wildcard_constraints:
 
 SIMUL_WINDOW = [50000]
 SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-METHODS      = ["maryam", "simple", "biallelic"]
+METHODS      = ["maryam", "simple_llr0", "simple_llr2", "simple_llr4"] # biallelic
 CHROMOSOMES  = config['chromosomes']
-ALL_SEGMENTS = ["fraction02", "fraction05", "fraction08", "fraction12", "fraction15", \
+ALL_SEGMENTS = ["fraction05", "fraction08", "fraction12", "fraction15", \
                 "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
-                "fraction45","fraction55","fraction65"]
+                "fraction45","fraction55"]
 SEGMENTS     = ["fraction05","fraction15","fraction25"]
 SIZE_RANGES  = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
 VAF_RANGES   = ["1-5", "5-10", "10-20", "20-50", "50-100"]
@@ -397,7 +397,9 @@ rule sv_classifier_mostsimple:
     input:
         "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
     output:
-        prob = "sv_calls/{sample}/{windows}.{bpdens}/simple.txt"
+        prob = "sv_calls/{sample}/{windows}.{bpdens}/simple_llr{llr}.txt"
+    params:
+        llr_cutoff = lambda wc: wc.llr
     script:
         "utils/sv_classifier_mostsimple.R"
 
