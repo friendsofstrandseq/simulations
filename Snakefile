@@ -50,7 +50,7 @@ rule simul:
 
         # New SV evaluation curves
         # (based on separate simulations for SV sizes and VAFs)
-        expand("results/evaluation_new/{binsize}_{method}.pdf",
+        expand("results/evaluation_stratified/{binsize}_{method}.pdf",
                 binsize = [50000],
                 method  = METHODS)
 
@@ -441,6 +441,6 @@ rule new_evaluation_newer_version:
                        vafrange  = VAF_RANGES,
                        segments = ALL_SEGMENTS),
     output:
-        "results/evaluation_new/{binsize}_{method}.pdf"
+        "results/evaluation_stratified/{binsize}_{method}.pdf"
     script:
         "utils/evaluation.stratified.R"
