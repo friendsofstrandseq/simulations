@@ -40,8 +40,8 @@ for (f in input.truth) {
 }
 
 
-### Read SV calls
 
+### Read SV calls
 message("[Evaluation] Reading ", length(input.calls), " data sets ...")
 regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
 Recall = NULL
@@ -70,15 +70,10 @@ for (f in input.calls) {
     message("Skipping file because there are no simulated SVs: ", f)
     next
   }
-  if (nrow(d)==0) {
-    message("Skipping file because there are no SV calls: ", f)
-    next
-  }
   
   # Calculate precision and recall
   rp = recall_precision(truth, d)
 
-  
   recall = rp[["recall"]]
   recall[, `:=`(SIMUL_id        = as.integer(vars[2]),
                 SIMUL_minsize   = as.integer(vars[3]),
@@ -91,20 +86,30 @@ for (f in input.calls) {
   Recall = rbind(Recall, recall)
   
   precision = rp[["precision"]]
-  precision[, `:=`(SIMUL_id        = as.integer(vars[2]),
-                   SIMUL_minsize   = as.integer(vars[3]),
-                   SIMUL_maxsize   = as.integer(vars[4]),
-                   SIMUL_minvaf    = as.integer(vars[5]),
-                   SIMUL_maxvaf    = as.integer(vars[6]),
-                   SIMUL_binsize   = as.integer(vars[7]),
-                   SIMUL_fraction  = as.integer(vars[9]),
-                   SIMUL_method    = vars[10]) ]
+  if (nrow(precision) == 0) {
+    precision[, `:=`(SIMUL_id        = integer(),
+                     SIMUL_minsize   = integer(),
+                     SIMUL_maxsize   = integer(),
+                     SIMUL_minvaf    = integer(),
+                     SIMUL_maxvaf    = integer(),
+                     SIMUL_binsize   = integer(),
+                     SIMUL_fraction  = integer(),
+                     SIMUL_method    = character()) ]
+  } else {
+    precision[, `:=`(SIMUL_id        = as.integer(vars[2]),
+                     SIMUL_minsize   = as.integer(vars[3]),
+                     SIMUL_maxsize   = as.integer(vars[4]),
+                     SIMUL_minvaf    = as.integer(vars[5]),
+                     SIMUL_maxvaf    = as.integer(vars[6]),
+                     SIMUL_binsize   = as.integer(vars[7]),
+                     SIMUL_fraction  = as.integer(vars[9]),
+                     SIMUL_method    = vars[10]) ]
+  }
   Precision = rbind(Precision, precision)
 }
 
 
-
-### Summarize across all the different simulations
+ ### Summarize across all the different simulations
 xxx = Recall[, .(N        = .N,
                  N_       = nrow(unique(.SD[,.(chrom, start, end)])),
                  bp       = sum(matches_call)/.N,
@@ -142,12 +147,13 @@ zzz[, SV_size := paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize))]
 zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         levels = unique(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"))[order(unique(SIMUL_minvaf))],
                         ordered = T)]
+zzz = zzz[order(SIMUL_fraction, SIMUL_minvaf, SIMUL_minsize)]
 
 p <- ggplot(zzz) +
-  geom_line(aes(bp.recall, bp.precision), 
+  geom_path(aes(bp.recall, bp.precision), 
             linetype = "solid", color = "darkgrey") +
   geom_point(aes(bp.recall, bp.precision, col = SIMUL_fraction)) +
-  geom_line(aes(bp_sv.recall, bp_sv.precision), 
+  geom_path(aes(bp_sv.recall, bp_sv.precision), 
             linetype = "dashed") +
   geom_point(aes(bp_sv.recall, bp_sv.precision, col = SIMUL_fraction), 
              shape = 17) +

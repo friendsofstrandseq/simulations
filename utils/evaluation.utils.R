@@ -146,7 +146,7 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
               "end"     %in% colnames(truth),
               "SV_type" %in% colnames(truth)) %>% invisible
   assert_that(is.data.table(calls),
-              nrow(calls) > 0,
+              # nrow(calls) > 0,
               "chrom"   %in% colnames(calls),
               "start"   %in% colnames(calls),
               "end"     %in% colnames(calls),
@@ -165,34 +165,62 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
             L[["called_loci"]], 
             by = c("chrom", "start", "end"))
   y = rename_SV_classes(y)
-  
- 
-  # View centered on true SV calls (recall)
-  recall = merge(x[, .(truth_id, sample, cell, chrom, start, end, called_id, SV_real = SV_type)],
-                 y[, .(truth_id, sample, cell, SV_found = SV_class)],
-                 by = c("truth_id", "sample", "cell"),
-                 all.x = T) %>%
-    .[, .(SV_size = (end - start + 1)[1],
-          SV_vaf = .N,
-          matches_call = ifelse(any(is.na(called_id)), FALSE, TRUE),
-          correct_gt = sum(!is.na(SV_found) & SV_real == SV_found),
-          correct_sv = sum(!is.na(SV_found) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))), 
-      by = .(chrom, start, end, truth_id, SV_real)]
 
-  
-  # View centered on called SVs (precision)
-  # Note that SV size and VAF are now defined based on the CALLED SVs !!! this can be slighlty counter-intuitive.
-  precision = merge(y[, .(called_id, sample, cell, chrom, start, end, SV_found = SV_class)],
-        x[, .(called_id, sample, cell, truth_id, SV_real = SV_type)],
-        by = c("called_id", "sample", "cell"),
-        all.x = T) %>%
-    .[, .(SV_size    = (end - start + 1)[1],
-          SV_vaf     = .N,
-          SV_found   = names(table(SV_found))[which.max(table(SV_found))],
-          matches_SV = ifelse(all(is.na(truth_id)), FALSE, TRUE),
-          correct_gt = sum(!is.na(SV_real) & SV_real == SV_found),
-          correct_sv = sum(!is.na(SV_real) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))),
-      by = .(chrom, start, end, called_id)]
+
+
+  # Special case when there are no calls
+  if (nrow(y)==0) {
+    
+      message("[Evaluation] Empty call set, treat special")
+      recall = x[, .(SV_size = (end - start + 1)[1],
+                     SV_vaf = .N,
+                     matches_call = FALSE,
+                     correct_gt = 0,
+                     correct_sv = 0),
+             by = .(chrom, start, end, truth_id, SV_real = SV_type)]
+
+      precision = data.table(chrom      = character(),
+                             start      = integer(),
+                             end        = integer(),
+                             called_id  = integer(),
+                             SV_size    = integer(),
+                             SV_vaf     = integer(),
+                             SV_found   = character(),
+                             matches_SV = logical(),
+                             correct_gt = numeric(),
+                             correct_sv = numeric())
+
+
+  # Normal mode
+  } else {
+
+    # View centered on true SV calls (recall)
+    recall = merge(x[, .(truth_id, sample, cell, chrom, start, end, called_id, SV_real = SV_type)],
+                   y[, .(truth_id, sample, cell, SV_found = SV_class)],
+                   by = c("truth_id", "sample", "cell"),
+                   all.x = T) %>%
+      .[, .(SV_size = (end - start + 1)[1],
+            SV_vaf = .N,
+            matches_call = ifelse(any(is.na(called_id)), FALSE, TRUE),
+            correct_gt = sum(!is.na(SV_found) & SV_real == SV_found),
+            correct_sv = sum(!is.na(SV_found) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))), 
+        by = .(chrom, start, end, truth_id, SV_real)]
+
+
+    # View centered on called SVs (precision)
+    # Note that SV size and VAF are now defined based on the CALLED SVs !!! this can be slighlty counter-intuitive.
+    precision = merge(y[, .(called_id, sample, cell, chrom, start, end, SV_found = SV_class)],
+          x[, .(called_id, sample, cell, truth_id, SV_real = SV_type)],
+          by = c("called_id", "sample", "cell"),
+          all.x = T) %>%
+      .[, .(SV_size    = (end - start + 1)[1],
+            SV_vaf     = .N,
+            SV_found   = names(table(SV_found))[which.max(table(SV_found))],
+            matches_SV = ifelse(all(is.na(truth_id)), FALSE, TRUE),
+            correct_gt = sum(!is.na(SV_real) & SV_real == SV_found),
+            correct_sv = sum(!is.na(SV_real) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))),
+        by = .(chrom, start, end, called_id)]
+  }
 
 
   return(list(recall = recall,
