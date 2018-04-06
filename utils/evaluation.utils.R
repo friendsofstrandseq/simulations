@@ -171,7 +171,6 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
   # Special case when there are no calls
   if (nrow(y)==0) {
     
-      message("[Evaluation] Empty call set, treat special")
       recall = x[, .(SV_size = (end - start + 1)[1],
                      SV_vaf = .N,
                      matches_call = FALSE,
@@ -189,7 +188,9 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
                              matches_SV = logical(),
                              correct_gt = numeric(),
                              correct_sv = numeric())
-
+      return(list(recall = recall,
+                  precision = precision,
+                  sv_call_set_empty = TRUE))
 
   # Normal mode
   } else {
@@ -221,7 +222,6 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
             correct_sv = sum(!is.na(SV_real) & substr(SV_real,5,nchar(SV_real)) == substr(SV_found,5,nchar(SV_found)))),
         by = .(chrom, start, end, called_id)]
   }
-
 
   return(list(recall = recall,
               precision = precision))

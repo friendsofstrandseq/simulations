@@ -73,6 +73,9 @@ for (f in input.calls) {
   
   # Calculate precision and recall
   rp = recall_precision(truth, d)
+  if ("sv_call_set_empty" %in% names(rp)) {
+    message("[Evaluation] Empty call set ", f)
+  }
 
   recall = rp[["recall"]]
   recall[, `:=`(SIMUL_id        = as.integer(vars[2]),
@@ -143,7 +146,9 @@ format_Mb = function(x) {
                 paste(x, "bp")))
   return (x)
 }
-zzz[, SV_size := paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize))]
+zzz[, SV_size := factor(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)),
+                        levels = unique(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)))[order(unique(SIMUL_minsize))],
+                        ordered = T)]
 zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         levels = unique(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"))[order(unique(SIMUL_minvaf))],
                         ordered = T)]
