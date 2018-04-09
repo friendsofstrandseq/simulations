@@ -155,6 +155,10 @@ zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         ordered = T)]
 zzz = zzz[order(SIMUL_fraction, SIMUL_minvaf, SIMUL_minsize)]
 
+
+write.table(zzz, file = paste0(snakemake@output[[1]], ".txt"),
+            quote=F, sep = "\t", row.names=F, col.names = T)
+
 p <- ggplot(zzz) +
   geom_path(aes(bp.recall, bp.precision), 
             linetype = "solid", color = "darkgrey") +

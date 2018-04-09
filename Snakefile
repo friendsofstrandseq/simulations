@@ -12,13 +12,14 @@ wildcard_constraints:
     minsvsize = "\d+",
     maxsvsize = "\d+",
     minvaf    = "\d+",
-    maxvaf    = "\d+"
+    maxvaf    = "\d+",
+    mincells  = "\d+"
 
 
 
 SIMUL_WINDOW = [50000]
-SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-METHODS      = ["maryam", "simple_llr0", "simple_llr2", "simple_llr4"] # biallelic
+SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9,10]
+METHODS      = ["maryam", "simple_llr0", "simple_llr2", "simple_llr4", "biallelic_min2cells", "biallelic_min3cells"] # biallelic
 CHROMOSOMES  = config['chromosomes']
 ALL_SEGMENTS = ["fraction05", "fraction08", "fraction12", "fraction15", \
                 "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
@@ -408,7 +409,9 @@ rule sv_classifier_biallelic:
     input:
         "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
     output:
-        prob = "sv_calls/{sample}/{windows}.{bpdens}/biallelic.txt"
+        prob = "sv_calls/{sample}/{windows}.{bpdens}/biallelic_min{mincells}cells.txt"
+    params:
+        mincells = lambda wc: wc.mincells
     script:
         "utils/sv_classifier_biallelic.R"
 

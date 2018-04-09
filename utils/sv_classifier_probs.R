@@ -138,6 +138,7 @@ calc_p_homDel_all = function(df, alpha = 0.05) {
 add_p_homDel <- function(df, alpha = 0.05) {
   df$p_homDel = MAX_NEGATIVE_VALUE
   df[state %in% c("CC","WC","CW","WW")]$p_homDel = calc_p_homDel_all(df[state %in% c("CC","WC","CW","WW")], alpha)
+  df[p_homDel < MAX_NEGATIVE_VALUE]$p_homDel = MAX_NEGATIVE_VALUE
   df
 }
 
