@@ -1,6 +1,8 @@
 library(data.table)
 
-MAX_NEGATIVE_VALUE = -1000
+# lowest number that R can represent is exp(-720)
+MAX_NEGATIVE_VALUE = -700
+
 
 
 ### REF ##################################################################################
