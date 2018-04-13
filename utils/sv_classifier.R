@@ -11,10 +11,10 @@ source("utils/sv_classifier_counts.R")
 # strand = fread("strand_states/simulation23-100000/final.txt")
 # segs   = fread("segmentation2/simulation23-100000/100000_fixed.few.txt") 
 
-# counts = fread(paste("zcat","counts/simulation7-50000/50000_fixed.txt.gz"))
-# info   = fread("counts/simulation7-50000/50000_fixed.info")
-# strand = fread("strand_states/simulation7-50000/final.txt")
-# segs   = fread("segmentation2/simulation7-50000/50000_fixed.few.txt")
+# counts = fread(paste("zcat","counts/simulation5-50000/50000_fixed.txt.gz"))
+# info   = fread("counts/simulation5-50000/50000_fixed.info")
+# strand = fread("strand_states/simulation5-50000/final.txt")
+# segs   = fread("segmentation2/simulation5-50000/50000_fixed.fraction15.txt")
 
 counts = fread(paste("zcat",snakemake@input[["counts"]]))
 info   = fread(snakemake@input[["info"]])
@@ -82,6 +82,9 @@ assert_that(all(unique(counts[,.(sample,cell)]) == unique(info[,.(sample,cell)])
 info <- merge(info, counts[, .(mean = mean((w+c)[class != "None"], trim = 0.05),
                                median = median((w+c)[class != "None"])), by = .(sample, cell)],
               by = c("sample","cell"))
+
+# update NB_P parameter. Note that NB_R is not even used!!
+info[, nb_p := nb_p * 0.66]
 
 
 
