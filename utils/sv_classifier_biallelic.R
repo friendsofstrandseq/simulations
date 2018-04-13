@@ -2,38 +2,38 @@ library(assertthat)
 library(data.table)
 library(dplyr)
 
-LLR = 1
-
+MIN_CELLS = as.integer(snakemake@params[["mincells"]])
 prob = readRDS(snakemake@input[[1]]) # prob = readRDS("sv_probabilities/simulation5-50000/50000_fixed.fraction12/raw_probabilities.Rdata")
 
-message("[SV classifier] Adding a prior")
-prob[state == "sce", `:=`(p_ref     = -1000,
-                          p_hetInv  = -1000,
-                          p_homInv  = -1000,
-                          p_hetDup  = -1000,
-                          p_homDup  = -1000,
-                          p_hetDel  = -1000,
-                          p_homDel  = -1000,
-                          p_hetIdup = -1000)]
-PRIORS = c(ref     = 0.3,
-           homInv  = 0.1,
-           hetInv  = 0.1,
-           hetDup  = 0.1,
-           homDup  = 0.1,
-           hetDel  = 0.1,
-           homDel  = 0.01,
-           hetIdup = 0.01)
-prob[, `:=` (p_ref     = p_ref     + log(PRIORS["ref"]),
-             p_homInv  = p_homInv  + log(PRIORS["homInv"]),
-             p_hetInv  = p_hetInv  + log(PRIORS["hetInv"]),
-             p_hetDup  = p_hetDup  + log(PRIORS["hetDup"]),
-             p_homDup  = p_homDup  + log(PRIORS["homDup"]),
-             p_homDel  = p_homDel  + log(PRIORS["homDel"]),
-             p_hetDel  = p_hetDel  + log(PRIORS["hetDel"]),
-             p_hetIdup = p_hetIdup + log(PRIORS["hetIdup"]))]
+
+#message("[SV classifier] Adding a prior")
+#prob[state == "sce", `:=`(p_ref     = -1000,
+#                          p_hetInv  = -1000,
+#                          p_homInv  = -1000,
+#                          p_hetDup  = -1000,
+#                          p_homDup  = -1000,
+#                          p_hetDel  = -1000,
+#                          p_homDel  = -1000,
+#                          p_hetIdup = -1000)]
+#PRIORS = c(ref     = 0.3,
+#           homInv  = 0.1,
+#           hetInv  = 0.1,
+#           hetDup  = 0.1,
+#           homDup  = 0.1,
+#           hetDel  = 0.1,
+#           homDel  = 0.01,
+#           hetIdup = 0.01)
+#prob[, `:=` (p_ref     = p_ref     + log(PRIORS["ref"]),
+#             p_homInv  = p_homInv  + log(PRIORS["homInv"]),
+#             p_hetInv  = p_hetInv  + log(PRIORS["hetInv"]),
+#             p_hetDup  = p_hetDup  + log(PRIORS["hetDup"]),
+#             p_homDup  = p_homDup  + log(PRIORS["homDup"]),
+#             p_homDel  = p_homDel  + log(PRIORS["homDel"]),
+#             p_hetDel  = p_hetDel  + log(PRIORS["hetDel"]),
+#             p_hetIdup = p_hetIdup + log(PRIORS["hetIdup"]))]
 
 
-MIN_CELLS = 2
+
 message("[SV classifier] Model across cells. Allow only one SV class, seen in at least ", MIN_CELLS, " cells")
 mod = prob[, data.table( model = c("ref","hetDel","homDel","hetInv","homInv","hetDup","homDup","hetIdup"),
                          loglik = c(sum(p_ref),

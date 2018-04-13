@@ -241,6 +241,10 @@ add_p_hetIdup <- function(df, alpha = 0.05) {
 
 
 ### Summary function #####################################################################
+
+# Is based on the observed number of reads ("W", "C"),
+# the expected number of reads ("expected") as well as
+# the NB parameter "nb_p".
 add_NB_probs <- function(df, alpha = 0.05) {
   assert_that(is.data.table(df))
   assert_that("state"    %in% colnames(df),
