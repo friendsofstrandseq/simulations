@@ -13,47 +13,75 @@ wildcard_constraints:
     maxsvsize = "\d+",
     minvaf    = "\d+",
     maxvaf    = "\d+",
-    mincells  = "\d+"
+    mincells  = "\d+",
+    llr       = "\d"
+
+
+localrules:
+    simul,
+    simulate_genome,
+    add_vafs_to_simulated_genome,
+    link_to_simulated_counts,
+    link_to_simulated_strand_states,
+    new_simulate_genome,
+    new_link_to_simulated_counts,
+    new_link_to_simulated_strand_states,
+    prepare_segments,
+    install_MaRyam
 
 
 
-SIMUL_WINDOW = [50000]
-SIMUL_SEEDS  = [1,2,3,4,5,6,7,8,9,10]
-METHODS      = ["maryam", "simple_llr0", "simple_llr2", "simple_llr4", "biallelic_min2cells", "biallelic_min3cells"] # biallelic
-CHROMOSOMES  = config['chromosomes']
-ALL_SEGMENTS = ["fraction05", "fraction08", "fraction12", "fraction15", \
-                "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
-                "fraction45","fraction55"]
-SEGMENTS     = ["fraction05","fraction15","fraction25"]
-SIZE_RANGES  = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
-VAF_RANGES   = ["1-5", "5-10", "10-20", "20-50", "50-100"]
+
+SIMUL_WINDOW    = [50000]
+SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
+SIMUL_SEEDS_NEW = [5,6,7]
+METHODS         = ["maryam",
+                   "simple_llr0", "simple_llr2", "simple_llr4"]
+CHROMOSOMES     = config['chromosomes']
+SEGMENTS        = ["fraction05","fraction15","fraction25"]
+ALL_SEGMENTS    = ["fraction05", "fraction08", "fraction12", "fraction15", \
+                   "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
+                   "fraction45","fraction55"]
+SIZE_RANGES     = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
+VAF_RANGES      = ["1-5", "5-10", "10-20", "20-50", "50-100"]
 
 rule simul:
     input:
         # Overview plots of cells
-        expand("plots/simulation{seed}-{binsize}/{binsize}_fixed.pdf",
-                seed   = SIMUL_SEEDS,
-                binsize = SIMUL_WINDOW),
-
+        # expand("plots/simulation{seed}-{binsize}/{binsize}_fixed.pdf",
+        #         seed   = SIMUL_SEEDS,
+        #         binsize = SIMUL_WINDOW),
+        #
         # Plot SV calls together with simulated variants per chromosome
-        expand("sv_plots/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
-                seed   = SIMUL_SEEDS,
-                binsize = SIMUL_WINDOW,
-                segments = SEGMENTS,
-                chrom = CHROMOSOMES,
-                method = METHODS),
-
+        # expand("sv_plots/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
+        #         seed      = SIMUL_SEEDS,
+        #         binsize   = SIMUL_WINDOW,
+        #         segments  = SEGMENTS,
+        #         chrom     = CHROMOSOMES,
+        #         method    = METHODS),
+        #
         # Evaluation curve that I designed during the hackathon
         # (based on a simulation of mixed SV sizes and VAFs)
         expand("results/evaluation_hackathon/{binsize}_{method}.pdf",
                 binsize = [50000],
                 method  = METHODS),
-
+        #
         # New SV evaluation curves
         # (based on separate simulations for SV sizes and VAFs)
         expand("results/evaluation_stratified/{binsize}_{method}.pdf",
                 binsize = [50000],
-                method  = METHODS)
+                method  = METHODS),
+
+        # Plot SV calls of some of the new simulations
+        expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
+                       seed = [5],
+                       sizerange = SIZE_RANGES,
+                       vafrange  = VAF_RANGES,
+                       segments  = SEGMENTS,
+                       binsize   = SIMUL_WINDOW,
+                       method    = METHODS,
+                       chrom     = CHROMOSOMES)
+
 
 
 ################################################################################
@@ -272,7 +300,7 @@ rule plot_mosaic_counts:
         {params.plot_command} {input.counts} {input.info} {output} > {log} 2>&1
         """
 
-rule plot_SV_calls_new:
+rule plot_SV_calls_old:
     input:
         counts = "counts/simulation{seed}-{binsize}/{binsize}_fixed.txt.gz",
         segs   = "segmentation2/simulation{seed}-{binsize}/{binsize}_fixed.{segments}.txt",
@@ -280,6 +308,17 @@ rule plot_SV_calls_new:
         simul  = "simulation/variants/genome{seed}-{binsize}.txt"
     output:
         expand("sv_plots/simulation{{seed}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
+    script:
+        "utils/plot_sv_calls.R"
+
+rule plot_SV_calls_new:
+    input:
+        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.txt.gz",
+        segs   = "segmentation2/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.{segments}.txt",
+        svs    = "sv_calls/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
+        simul  = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/variants-{binsize}.txt"
+    output:
+        expand("sv_plots/seed{{seed}}_size{{minsvsize}}-{{maxsvsize}}_vaf{{minvaf}}-{{maxvaf}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
     script:
         "utils/plot_sv_calls.R"
 
@@ -423,25 +462,25 @@ rule sv_classifier_biallelic:
 ################################################################################
 
 
-rule new_evaluation_hackathon:
+rule evaluation_hackathon:
     input:
         truth = expand("simulation/variants/genome{seed}-{{binsize}}.txt", \
-                       seed = SIMUL_SEEDS),
+                       seed = SIMUL_SEEDS_OLD),
         calls = expand("sv_calls/simulation{seed}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt", \
-                       seed = SIMUL_SEEDS, segments = ALL_SEGMENTS)
+                       seed = SIMUL_SEEDS_OLD, segments = ALL_SEGMENTS)
     output:
         "results/evaluation_hackathon/{binsize}_{method}.pdf"
     script:
         "utils/evaluation.R"
 
-rule new_evaluation_newer_version:
+rule evaluation_newer_version:
     input:
         truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}/variants-{{binsize}}.txt",
-                       seed = [5,6,7],
+                       seed = SIMUL_SEEDS_NEW,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES),
         calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
-                       seed = [5,6,7],
+                       seed = SIMUL_SEEDS_NEW,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
                        segments = ALL_SEGMENTS),

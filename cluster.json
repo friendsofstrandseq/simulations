@@ -1,0 +1,18 @@
+{
+  "__default__" :
+  {
+    "sbatch" : "sbatch -o logs/{rule}.%j.out -e logs/{rule}.%j.out",
+    "partition" : "htc",
+    "n"      : "{threads}",
+    "mem"    : "1G",
+    "time"   : "30:00"
+  },
+  "new_evaluation_newer_version" :
+  {
+    "time"   : "10:00"
+  },
+  "new_evaluation_hackathon" :
+  {
+    "time"   : "10:00"
+  }
+}
