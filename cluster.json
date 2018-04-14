@@ -1,11 +1,12 @@
 {
   "__default__" :
   {
-    "sbatch" : "sbatch -o logs/{rule}.%j.out -e logs/{rule}.%j.out",
+    "sbatch" : "sbatch -o slurm/{rule}.%j.out -e slurm/{rule}.%j.out",
     "partition" : "htc",
+	"name"   : "snake.{rule}.%j",
     "n"      : "{threads}",
-    "mem"    : "1G",
-    "time"   : "30:00"
+    "mem"    : "500M",
+    "time"   : "10:00"
   },
   "new_evaluation_newer_version" :
   {
@@ -14,5 +15,17 @@
   "new_evaluation_hackathon" :
   {
     "time"   : "10:00"
+  },
+  "simulate_counts" :
+  {
+    "mem"    : "1200M"
+  },
+  "new_simulate_counts" :
+  {
+    "mem"    : "1200M"
+  },
+  "plot_SV_calls_new" :
+  {
+    "time"   : "30:00"
   }
 }
