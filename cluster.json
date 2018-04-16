@@ -10,11 +10,11 @@
   },
   "new_evaluation_newer_version" :
   {
-    "time"   : "10:00"
+    "mem"   : "2G"
   },
   "new_evaluation_hackathon" :
   {
-    "time"   : "10:00"
+    "mem"   : "2G"
   },
   "simulate_counts" :
   {
@@ -27,5 +27,25 @@
   "plot_SV_calls_new" :
   {
     "time"   : "30:00"
+  },
+  "segmentation" :
+  {
+    "time"   : "1:00:00",
+	"mem"    : "2G"
+  },
+  "sv_classifier_preparation" :
+  {
+    "mem"    : "2G",
+	"time"   : "30:00"
+  },
+  "sv_classifier_maryam" :
+  {
+    "mem"    : "2G",
+	"time"   : "2:00:00"
+  },
+  "plot_SV_calls_new" :
+  {
+    "mem"    : "2G",
+    "time"   : "45:00"
   }
 }

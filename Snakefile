@@ -339,7 +339,7 @@ rule segmentation:
     shell:
         """
         {params.mc_command} segment \
-        -o {output} \
+        -m 0.5 -M 50000000 -o {output} \
         {input} > {log} 2>&1
         """
 
