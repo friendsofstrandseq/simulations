@@ -27,7 +27,8 @@ localrules:
     new_link_to_simulated_counts,
     new_link_to_simulated_strand_states,
     prepare_segments,
-    install_MaRyam
+    install_MaRyam,
+    convert_SVprob_output
 
 
 

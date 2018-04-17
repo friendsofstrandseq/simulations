@@ -30,22 +30,26 @@
   },
   "segmentation" :
   {
-    "time"   : "1:00:00",
+    "time"   : "45:00",
 	"mem"    : "2G"
   },
   "sv_classifier_preparation" :
   {
-    "mem"    : "2G",
-	"time"   : "30:00"
+    "mem"    : "2500M",
+	"time"   : "12:00"
   },
   "sv_classifier_maryam" :
   {
     "mem"    : "2G",
-	"time"   : "2:00:00"
+	"time"   : "45:00"
   },
   "plot_SV_calls_new" :
   {
     "mem"    : "2G",
-    "time"   : "45:00"
+    "time"   : "25:00"
+  },
+  "sv_classifier_mostsimple" :
+  {
+    "time"   : "04:00",
   }
 }
