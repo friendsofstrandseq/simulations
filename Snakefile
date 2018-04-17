@@ -252,7 +252,7 @@ rule new_simulate_counts:
             -U {output.segments} \
             -P {output.phases} \
             -S {output.sce} \
-            --sample-name simulation{wildcards.seed}-{wildcards.binsize} \
+            --sample-name seed{wildcards.seed}_size{wildcards.minsvsize}-{wildcards.maxsvsize}_vaf{wildcards.minvaf}-{wildcards.maxvaf}-{wildcards.binsize} \
             {input.config} > {log} 2>&1
         """
 
