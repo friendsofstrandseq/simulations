@@ -12,8 +12,11 @@ SV_states = c("ref","hetDel","homDel","hetDup","homDup","hetInv","homInv","hetId
 
 
 # 1) Read input data (prob table + LLR value)
-LLR = as.numeric(snakemake@params[["llr_cutoff"]])
-prob = fread(snakemake@input[[1]]) 
+print(snakemake@input)
+print(snakemake@params)
+
+LLR  = as.numeric(snakemake@params[["llr_cutoff"]])
+prob = readRDS(snakemake@input[["prob"]]) 
 # prob = readRDS("../run_20180401/sv_probabilities/simulation5-50000/50000_fixed.fraction15/raw_probabilities.Rdata")
 
 
