@@ -37,7 +37,8 @@ SIMUL_WINDOW    = [50000]
 SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
 SIMUL_SEEDS_NEW = [5,6,7]
 METHODS         = ["maryam",
-                   "simple_llr0", "simple_llr2", "simple_llr4"]
+                   "simple_llr0", "simple_llr2", "simple_llr4",
+                   "merge_llr2"]
 CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction05","fraction15","fraction25"]
 ALL_SEGMENTS    = ["fraction05", "fraction08", "fraction12", "fraction15", \
@@ -443,6 +444,16 @@ rule sv_classifier_mostsimple:
         llr_cutoff = lambda wc: wc.llr
     script:
         "utils/sv_classifier_mostsimple.R"
+
+rule sv_classifier_merger:
+    input:
+        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
+    output:
+        prob = "sv_calls/{sample}/{windows}.{bpdens}/merge_llr{llr}.txt"
+    params:
+        llr_cutoff = lambda wc: wc.llr
+    script:
+        "utils/sv_classifier_merger.R"
 
 
 rule sv_classifier_biallelic:
