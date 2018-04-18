@@ -3,7 +3,6 @@
   {
     "sbatch" : "sbatch -o slurm/{rule}.%j.out -e slurm/{rule}.%j.out",
     "partition" : "htc",
-	"name"   : "snake.{rule}.%j",
     "n"      : "{threads}",
     "mem"    : "500M",
     "time"   : "10:00"

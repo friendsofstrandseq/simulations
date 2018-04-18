@@ -40,10 +40,10 @@ METHODS         = ["maryam",
                    "simple_llr0", "simple_llr2", "simple_llr4",
                    "merge_llr2"]
 CHROMOSOMES     = config['chromosomes']
-SEGMENTS        = ["fraction05","fraction15","fraction25"]
-ALL_SEGMENTS    = ["fraction05", "fraction08", "fraction12", "fraction15", \
-                   "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
-                   "fraction45","fraction55"]
+SEGMENTS        = ["fraction15","fraction30","fraction55"]
+ALL_SEGMENTS    = ["fraction08", "fraction15", \
+                   "fraction20", "fraction25", "fraction30", "fraction35", \
+                   "fraction45","fraction55","fraction70"]
 SIZE_RANGES     = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
 VAF_RANGES      = ["1-5", "5-10", "10-20", "20-50", "50-100"]
 
