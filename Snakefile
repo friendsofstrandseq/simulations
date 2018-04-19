@@ -33,26 +33,21 @@ localrules:
 
 
 
-SIMUL_WINDOW    = [50000]
-SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
-SIMUL_SEEDS_NEW = [5,6,7]
-METHODS         = ["maryam",
-                   "simple_llr0", "simple_llr2", "simple_llr4",
+SIMUL_WINDOW    = [50000,100000]
+SIMUL_SEEDS     = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+METHODS         = ["maryam", "simple_llr2",
                    "merge_llr2"]
 CHROMOSOMES     = config['chromosomes']
-SEGMENTS        = ["fraction15","fraction30","fraction55"]
-ALL_SEGMENTS    = ["fraction08", "fraction15", \
-                   "fraction20", "fraction25", "fraction30", "fraction35", \
-                   "fraction45","fraction55","fraction65"]
-SIZE_RANGES     = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
-VAF_RANGES      = ["1-5", "5-10", "10-20", "20-50", "50-100"]
+SEGMENTS        = ["fraction10", "fraction20", "fraction30", "fraction50","fraction70", "fraction100"]
+SIZE_RANGES     = ["200000-500000", "500000-1000000", "1000000-3000000", "3000000-10000000"]
+VAF_RANGES      = ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"]
 
 rule simul:
     input:
         # New SV evaluation curves
         # (based on separate simulations for SV sizes and VAFs)
         expand("results/evaluation_stratified/{binsize}_{method}.pdf",
-                binsize = [50000],
+                binsize = SIMUL_WINDOW,
                 method  = METHODS),
 
         # Plot SV calls of some of the new simulations
@@ -226,7 +221,7 @@ rule segmentation:
     shell:
         """
         {params.mc_command} segment \
-        -m 0.5 -M 50000000 -o {output} \
+        -m 0.2 -M 50000000 -o {output} \
         {input} > {log} 2>&1
         """
 
@@ -362,14 +357,14 @@ rule sv_classifier_biallelic:
 rule evaluation_newer_version:
     input:
         truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}/variants-{{binsize}}.txt",
-                       seed = SIMUL_SEEDS_NEW,
+                       seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES),
         calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
-                       seed = SIMUL_SEEDS_NEW,
+                       seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
-                       segments = ALL_SEGMENTS),
+                       segments = SEGMENTS),
     output:
         "results/evaluation_stratified/{binsize}_{method}.pdf"
     script:

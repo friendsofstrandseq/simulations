@@ -29,7 +29,7 @@
   },
   "segmentation" :
   {
-    "time"   : "45:00",
+    "time"   : "30:00",
 	"mem"    : "2G"
   },
   "sv_classifier_preparation" :
