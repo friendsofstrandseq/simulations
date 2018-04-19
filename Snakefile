@@ -28,7 +28,8 @@ localrules:
     new_link_to_simulated_strand_states,
     prepare_segments,
     install_MaRyam,
-    convert_SVprob_output
+    convert_SVprob_output,
+    sv_classifier_filter
 
 
 
@@ -37,8 +38,9 @@ SIMUL_WINDOW    = [50000]
 SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
 SIMUL_SEEDS_NEW = [5,6,7]
 METHODS         = ["maryam",
-                   "simple_llr0", "simple_llr2", "simple_llr4",
-                   "merge_llr2"]
+                   "simple_llr0", "simple_llr2", "simple_llr4","merge_llr2",
+                   "simple_llr2___size300000-vaf1.txt", "simple_llr2___size300000-vaf2.txt", "simple_llr2___size300000-vaf3.txt",
+                   "simple_llr2___size500000-vaf1.txt", "simple_llr2___size500000-vaf2.txt", "simple_llr2___size500000-vaf3.txt"]
 CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction15","fraction30","fraction55"]
 ALL_SEGMENTS    = ["fraction08", "fraction15", \
@@ -465,6 +467,19 @@ rule sv_classifier_biallelic:
         mincells = lambda wc: wc.mincells
     script:
         "utils/sv_classifier_biallelic.R"
+
+
+rule sv_classifier_filter:
+    input:
+        "sv_calls/{sample}/{windows}.{bpdens}/{method}.txt"
+    output:
+        "sv_calls/{sample}/{windows}.{bpdens}/{method}___size{minsvsize}-vaf{minvaf}.txt"
+    params:
+        minsvsize = lambda wc: wc.minsvsize,
+        minvaf    = lambda wc: wc.minvaf,
+        numcells  = NUM_CELLS
+    script:
+        "utils/filter_sv_calls.R"
 
 
 
