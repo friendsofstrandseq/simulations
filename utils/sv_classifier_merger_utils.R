@@ -9,6 +9,16 @@ library(assertthat)
 ################################################################################
 
 
+format_Mb = function(x) {
+  y = ifelse(x>=1e6, 
+             paste(round(x/1e6,1),"Mb"),
+             ifelse(x>=1e3,
+                    paste(round(x/1e3,1),"kb"),
+                    paste(x, "bp")))
+   return (y)
+}
+
+
 # normalize_probs
 # ---------------
 # transform probabilities from raw logged values into normalized (rowSum = 1)
