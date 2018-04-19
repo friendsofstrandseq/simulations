@@ -40,10 +40,10 @@ METHODS         = ["maryam",
                    "simple_llr0", "simple_llr2", "simple_llr4",
                    "merge_llr2"]
 CHROMOSOMES     = config['chromosomes']
-SEGMENTS        = ["fraction05","fraction15","fraction25"]
-ALL_SEGMENTS    = ["fraction05", "fraction08", "fraction12", "fraction15", \
-                   "fraction18", "fraction20", "fraction25", "fraction30", "fraction35", \
-                   "fraction45","fraction55"]
+SEGMENTS        = ["fraction15","fraction30","fraction55"]
+ALL_SEGMENTS    = ["fraction08", "fraction15", \
+                   "fraction20", "fraction25", "fraction30", "fraction35", \
+                   "fraction45","fraction55","fraction65"]
 SIZE_RANGES     = ["100000-200000", "200000-400000", "400000-800000", "800000-1600000", "1600000-3200000","3200000-6400000"]
 VAF_RANGES      = ["1-5", "5-10", "10-20", "20-50", "50-100"]
 
@@ -437,9 +437,9 @@ rule sv_classifier_preparation:
 
 rule sv_classifier_mostsimple:
     input:
-        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
+        prob = "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
     output:
-        prob = "sv_calls/{sample}/{windows}.{bpdens}/simple_llr{llr}.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/simple_llr{llr}.txt"
     params:
         llr_cutoff = lambda wc: wc.llr
     script:
@@ -447,9 +447,9 @@ rule sv_classifier_mostsimple:
 
 rule sv_classifier_merger:
     input:
-        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
+        prob = "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
     output:
-        prob = "sv_calls/{sample}/{windows}.{bpdens}/merge_llr{llr}.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/merge_llr{llr}.txt"
     params:
         llr_cutoff = lambda wc: wc.llr
     script:

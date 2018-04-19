@@ -3,7 +3,7 @@ library(data.table)
 library(dplyr)
 
 LLR = as.numeric(snakemake@params[["llr_cutoff"]])
-prob = readRDS(snakemake@input[[1]]) # prob = readRDS("sv_probabilities/simulation5-50000/50000_fixed.few/raw_probabilities.Rdata")
+prob = readRDS(snakemake@input[["prob"]]) # prob = readRDS("sv_probabilities/simulation5-50000/50000_fixed.few/raw_probabilities.Rdata")
 
 
 #message("[SV classifier] Post-processing NB probabilities, e.g. adding a prior")
