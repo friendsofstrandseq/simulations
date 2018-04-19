@@ -172,6 +172,7 @@ p <- ggplot(zzz) +
   geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
             data = zzz[, .(min(N.precision),max(N.precision)), by = .(SV_size, SV_vaf)]) +
   facet_grid(SV_size ~ SV_vaf) +
+  scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
   theme_bw() + theme(legend.position = "bottom") +
   coord_cartesian(ylim = c(0,1), xlim = c(0,1))
 
