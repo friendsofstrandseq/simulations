@@ -8,7 +8,7 @@ wildcard_constraints:
     windows   = "\d+_[a-zA-Z]+",
     chrom     = "[chr0-9XY]+",
     segments  = "[a-zA-Z0-9]+",
-    method    = "[a-zA-Z0-9_]+",
+    method    = "[a-zA-Z0-9_-]+",
     minsvsize = "\d+",
     maxsvsize = "\d+",
     minvaf    = "\d+",
@@ -28,15 +28,17 @@ localrules:
     new_link_to_simulated_strand_states,
     prepare_segments,
     install_MaRyam,
-    convert_SVprob_output
-
+    convert_SVprob_output,
+    sv_classifier_filter
 
 
 
 SIMUL_WINDOW    = [50000,100000]
-SIMUL_SEEDS     = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-METHODS         = ["maryam", "simple_llr2",
-                   "merge_llr2"]
+NUM_CELLS       = 200
+METHODS         = ["maryam",
+                   "simple_llr0", "simple_llr2", "simple_llr4","merge_llr2",
+                   "simple_llr2___size300000-vaf1", "simple_llr2___size300000-vaf2", "simple_llr2___size300000-vaf3",
+                   "simple_llr2___size500000-vaf1", "simple_llr2___size500000-vaf2", "simple_llr2___size500000-vaf3"]
 CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction10", "fraction20", "fraction30", "fraction50","fraction70", "fraction100"]
 SIZE_RANGES     = ["200000-500000", "500000-1000000", "1000000-3000000", "3000000-10000000"]
@@ -48,8 +50,8 @@ rule simul:
         # (based on separate simulations for SV sizes and VAFs)
         expand("results/evaluation_stratified/{binsize}_{method}.pdf",
                 binsize = SIMUL_WINDOW,
-                method  = METHODS),
-
+                method  = METHODS)
+        #
         # Plot SV calls of some of the new simulations
         # expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
         #                seed = [5],
@@ -113,7 +115,7 @@ rule new_simulate_counts:
         neg_binom_p  = neg_binom_p,
         min_coverage = min_coverage,
         max_coverage = max_coverage,
-        cell_count   = config["simulation_cell_count"],
+        cell_count   = NUM_CELLS,
         alpha        = config["simulation_alpha"],
     log:
         "log/simulate_counts/genome{seed}-{binsize}.txt"
@@ -345,6 +347,19 @@ rule sv_classifier_biallelic:
         mincells = lambda wc: wc.mincells
     script:
         "utils/sv_classifier_biallelic.R"
+
+
+rule sv_classifier_filter:
+    input:
+        "sv_calls/{sample}/{windows}.{bpdens}/{method}.txt"
+    output:
+        "sv_calls/{sample}/{windows}.{bpdens}/{method}___size{minsvsize}-vaf{minvaf}.txt"
+    params:
+        minsvsize = lambda wc: wc.minsvsize,
+        minvaf    = lambda wc: wc.minvaf,
+        numcells  = NUM_CELLS
+    script:
+        "utils/filter_sv_calls.R"
 
 
 
