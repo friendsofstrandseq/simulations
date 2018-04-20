@@ -84,7 +84,9 @@ rule simul:
                        segments  = SEGMENTS,
                        binsize   = SIMUL_WINDOW,
                        method    = METHODS,
-                       chrom     = CHROMOSOMES)
+                       chrom     = CHROMOSOMES),
+        expand("results/evaluation_stratified/meta-{binsize}.pdf",
+                binsize = SIMUL_WINDOW)
 
 
 
@@ -515,3 +517,13 @@ rule evaluation_newer_version:
         "results/evaluation_stratified/{binsize}_{method}.pdf"
     script:
         "utils/evaluation.stratified.R"
+
+
+rule evaluation_meta:
+    input:
+        expand("results/evaluation_stratified/{{binsize}}_{method}.pdf.txt",
+               method = METHODS)
+    output:
+        "results/evaluation_stratified/meta-{binsize}.pdf"
+    script:
+        "utils/evaluation.meta.R"
