@@ -76,7 +76,7 @@ rule simul:
         # (based on separate simulations for SV sizes and VAFs)
         expand("results/evaluation_stratified/{binsize}_{method}.pdf",
                 binsize = [50000],
-                method  = METHODS)
+                method  = METHODS),
         #
         # Plot SV calls of some of the new simulations
         expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
@@ -518,7 +518,8 @@ rule evaluation_newer_version:
                        vafrange  = VAF_RANGES,
                        segments = ALL_SEGMENTS),
     output:
-        "results/evaluation_stratified/{binsize}_{method}.pdf"
+        "results/evaluation_stratified/{binsize}_{method}.pdf",
+        "results/evaluation_stratified/{binsize}_{method}.pdf.txt"
     script:
         "utils/evaluation.stratified.R"
 
