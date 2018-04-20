@@ -32,7 +32,7 @@ localrules:
     sv_classifier_filter
 
 
-
+SIMUL_SEEDS     = [1,2,3]
 SIMUL_WINDOW    = [50000,100000]
 NUM_CELLS       = 200
 METHODS         = ["maryam",
