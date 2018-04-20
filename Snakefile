@@ -38,9 +38,11 @@ SIMUL_WINDOW    = [50000]
 SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
 SIMUL_SEEDS_NEW = [5,6,7]
 METHODS         = ["maryam",
-                   "simple_llr0", "simple_llr2", "simple_llr4","merge_llr2",
-                   "simple_llr2___size300000-vaf1", "simple_llr2___size300000-vaf2", "simple_llr2___size300000-vaf3",
-                   "simple_llr2___size500000-vaf1", "simple_llr2___size500000-vaf2", "simple_llr2___size500000-vaf3"]
+                   "simple_llr0", "simple_llr2", "simple_llr4",
+				   "merge_llr0",  "merge_llr2",  "merge_llr4",
+                   "simple_llr2___size300000-vaf2", "simple_llr2___size300000-vaf4",
+                   "simple_llr2___size500000-vaf2", "simple_llr2___size500000-vaf4",
+				   "merge_llr2___size500000-vaf2", "merge_llr2___size500000-vaf4"]
 CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction15","fraction30","fraction55"]
 ALL_SEGMENTS    = ["fraction08", "fraction15", \
@@ -495,6 +497,8 @@ rule evaluation_hackathon:
                        seed = SIMUL_SEEDS_OLD),
         calls = expand("sv_calls/simulation{seed}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt", \
                        seed = SIMUL_SEEDS_OLD, segments = ALL_SEGMENTS)
+    params:
+        N_cells = NUM_CELLS
     output:
         "results/evaluation_hackathon/{binsize}_{method}.pdf"
     script:
