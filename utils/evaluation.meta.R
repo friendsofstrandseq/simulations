@@ -20,7 +20,7 @@ for (f in snakemake@input) {
 }
 D
 
-cairo_pdf(snakemake@output[[1]], width = 12, height = 8, onefile = T)
+cairo_pdf(snakemake@output[[1]], width = 16, height = 12, onefile = T)
 for (sv_size_ in unique(D$SIMUL_minsize)) {
   for (vaf_ in unique(D$SIMUL_minvaf) ) {
     E = D[SIMUL_minsize == sv_size_ & SIMUL_minvaf == vaf_]
