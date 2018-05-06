@@ -37,3 +37,22 @@ for (sv_size_ in unique(D$SIMUL_minsize)) {
   }
 }
 dev.off()
+
+
+
+cairo_pdf(paste0(sub(".pdf$", "", snakemake@output[[1]]), 2, ".pdf"), width = 12, height = 8, onefile = T)
+for (method_ in unique(D$method)) {
+  E = copy(D[method == method_])
+  E[, simulation := paste0(SV_size, "; VAF = ", SV_vaf)]
+  ggplot(E) +
+    geom_path(aes(bp.recall, bp.precision, col = SV_vaf)) +
+    geom_point(aes(bp.recall, bp.precision, col = SV_vaf)) +
+    theme_bw() +
+    theme(legend.position = "bottom") +
+    coord_cartesian(ylim = c(0,1), xlim = c(0,1)) +
+    ggtitle(method_) +
+    geom_vline(xintercept = 0.8, color = "red", linetype = "dotted") +
+    geom_hline(yintercept = 0.8, color = "red", linetype = "dotted") +
+    facet_wrap(~SV_size)
+}
+dev.off()
