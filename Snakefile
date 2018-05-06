@@ -32,7 +32,7 @@ localrules:
     sv_classifier_filter
 
 
-
+NUM_SVS         = 150
 NUM_CELLS       = 200
 SIMUL_WINDOW    = [50000]
 SIMUL_SEEDS_OLD = [1,2,3,4,5,6,7,8,9,10]
@@ -102,7 +102,7 @@ rule simulate_genome:
     log:
         "log/simulate_genome/genome{seed}.tsv"
     params:
-        svcount     =     200,
+        svcount     = NUM_SVS,
         minsize     =  100000,
         maxsize     = 5000000,
         mindistance = 1000000,
@@ -209,7 +209,7 @@ rule new_simulate_genome:
     log:
         "log/simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}.txt"
     params:
-        svcount     =     200,
+        svcount     = NUM_SVS,
         mindistance = 1000000
     shell:
         """
