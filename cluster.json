@@ -42,10 +42,19 @@
     "mem"    : "2G",
 	"time"   : "45:00"
   },
+  "plot_mosaic_counts" :
+  {
+    "time"   : "20:00"
+  },
   "plot_SV_calls_new" :
   {
     "mem"    : "2G",
     "time"   : "25:00"
+  },
+  "plot_SV_calls_old" :
+  {
+    "time" : "35:00",
+    "mem"  : "1G"
   },
   "sv_classifier_mostsimple" :
   {
