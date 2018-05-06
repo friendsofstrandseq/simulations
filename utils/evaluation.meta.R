@@ -44,7 +44,7 @@ cairo_pdf(paste0(sub(".pdf$", "", snakemake@output[[1]]), 2, ".pdf"), width = 12
 for (method_ in unique(D$method)) {
   E = copy(D[method == method_])
   E[, simulation := paste0(SV_size, "; VAF = ", SV_vaf)]
-  ggplot(E) +
+  p = ggplot(E) +
     geom_path(aes(bp.recall, bp.precision, col = SV_vaf)) +
     geom_point(aes(bp.recall, bp.precision, col = SV_vaf)) +
     theme_bw() +
@@ -54,5 +54,6 @@ for (method_ in unique(D$method)) {
     geom_vline(xintercept = 0.8, color = "red", linetype = "dotted") +
     geom_hline(yintercept = 0.8, color = "red", linetype = "dotted") +
     facet_wrap(~SV_size)
+  print(p)
 }
 dev.off()
