@@ -55,7 +55,7 @@ SIZE_RANGES     = ["200000-500000",
                    "1000000-2000000",
                    "2000000-5000000"]
 VAF_RANGES      = ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"]
-
+SV_CLASSES      = ["het_del", "het_dup", "het_inv"]
 
 
 ### Main rule
@@ -68,14 +68,15 @@ rule simul:
                 method  = METHODS),
         #
         # Plot SV calls of some of the new simulations
-        expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
+        expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
                        seed      = SIMUL_SEEDS[1:2],
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
                        segments  = SEGMENTS,
                        binsize   = SIMUL_WINDOW,
                        method    = METHODS,
-                       chrom     = CHROMOSOMES),
+                       chrom     = CHROMOSOMES,
+                       svclass   = SV_CLASSES),
         expand("results/evaluation_stratified/meta-{binsize}.pdf",
                 binsize = SIMUL_WINDOW)
 
@@ -136,7 +137,7 @@ rule new_simulate_counts:
         cell_count   = NUM_CELLS,
         alpha        = config["simulation_alpha"]
     log:
-        "log/simulate_counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}_{svclass}.txt"
+        "log/simulate_counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}.txt"
     shell:
         """
             {params.mc_command} simulate \
@@ -153,7 +154,7 @@ rule new_simulate_counts:
             -U {output.segments} \
             -P {output.phases} \
             -S {output.sce} \
-            --sample-name seed{wildcards.seed}_size{wildcards.minsvsize}-{wildcards.maxsvsize}_vaf{wildcards.minvaf}-{wildcards.maxvaf}-{wildcards.binsize}_{svclass} \
+            --sample-name seed{wildcards.seed}_size{wildcards.minsvsize}-{wildcards.maxsvsize}_vaf{wildcards.minvaf}-{wildcards.maxvaf}-{wildcards.binsize}_{wildcards.svclass} \
             {input.config} > {log} 2>&1
         """
 
@@ -359,15 +360,17 @@ rule mosaiClassifier_make_call_biallelic:
 
 rule evaluation_newer_version:
     input:
-        truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}/variants-{{binsize}}.txt",
-                       seed = SIMUL_SEEDS,
-                       sizerange = SIZE_RANGES,
-                       vafrange  = VAF_RANGES),
-        calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
+        truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}/variants-{{binsize}}.txt",
                        seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
-                       segments = SEGMENTS),
+                       svclass   = SV_CLASSES),
+        calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
+                       seed = SIMUL_SEEDS,
+                       sizerange = SIZE_RANGES,
+                       vafrange  = VAF_RANGES,
+                       segments  = SEGMENTS,
+                       svclass   = SV_CLASSES)
     output:
         "results/evaluation_stratified/{binsize}_{method}.pdf",
         "results/evaluation_stratified/{binsize}_{method}.pdf.txt"
