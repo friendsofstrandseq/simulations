@@ -98,9 +98,9 @@ def neg_binom_p(wildcards):
 
 rule new_simulate_genome:
     output:
-        "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/genome.tsv"
+        "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/genome.tsv"
     log:
-        "log/simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}.txt"
+        "log/simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}.txt"
     params:
         svcount     = NUM_SVS,
         mindistance = 1000000
@@ -108,7 +108,8 @@ rule new_simulate_genome:
         """
         tmp=$(mktemp)
         Rscript utils/simulate_SVs.R {wildcards.seed} {params.svcount} \
-            {wildcards.minsvsize} {wildcards.maxsvsize} {params.mindistance} $tmp \
+            {wildcards.minsvsize} {wildcards.maxsvsize} {params.mindistance} \
+            {wildcards.svclass} $tmp \
             > {log} 2>&1
         awk -v minvaf={wildcards.minvaf} -v maxvaf={wildcards.maxvaf} \
             -v seed={wildcards.seed} \
@@ -119,23 +120,23 @@ rule new_simulate_genome:
 
 rule new_simulate_counts:
     input:
-        config = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/genome.tsv"
+        config = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}_{svclass}/genome.tsv"
     output:
-        counts   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/counts-{binsize}.txt.gz",
-        segments = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/segments-{binsize}.txt",
-        phases   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/phases-{binsize}.txt",
-        info     = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/info-{binsize}.txt",
-        sce      = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/sce-{binsize}.txt",
-        variants = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/variants-{binsize}.txt",
+        counts   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/counts-{binsize}.txt.gz",
+        segments = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/segments-{binsize}.txt",
+        phases   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/phases-{binsize}.txt",
+        info     = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/info-{binsize}.txt",
+        sce      = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/sce-{binsize}.txt",
+        variants = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/variants-{binsize}.txt",
     params:
         mc_command   = config["mosaicatcher"],
         neg_binom_p  = neg_binom_p,
         min_coverage = min_coverage,
         max_coverage = max_coverage,
         cell_count   = NUM_CELLS,
-        alpha        = config["simulation_alpha"],
+        alpha        = config["simulation_alpha"]
     log:
-        "log/simulate_counts/genome{seed}-{binsize}.txt"
+        "log/simulate_counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}_{svclass}.txt"
     shell:
         """
             {params.mc_command} simulate \
@@ -152,17 +153,17 @@ rule new_simulate_counts:
             -U {output.segments} \
             -P {output.phases} \
             -S {output.sce} \
-            --sample-name seed{wildcards.seed}_size{wildcards.minsvsize}-{wildcards.maxsvsize}_vaf{wildcards.minvaf}-{wildcards.maxvaf}-{wildcards.binsize} \
+            --sample-name seed{wildcards.seed}_size{wildcards.minsvsize}-{wildcards.maxsvsize}_vaf{wildcards.minvaf}-{wildcards.maxvaf}-{wildcards.binsize}_{svclass} \
             {input.config} > {log} 2>&1
         """
 
 rule new_link_to_simulated_counts:
     input:
-        counts = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/counts-{binsize}.txt.gz",
-        info   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/info-{binsize}.txt",
+        counts = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/counts-{binsize}.txt.gz",
+        info   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/info-{binsize}.txt",
     output:
-        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.txt.gz",
-        info   = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.info"
+        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}-{binsize}/{binsize}_fixed.txt.gz",
+        info   = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}-{binsize}/{binsize}_fixed.info"
     run:
         d = os.path.dirname(output.counts)
         count_file = os.path.basename(output.counts)
@@ -172,9 +173,9 @@ rule new_link_to_simulated_counts:
 
 rule new_link_to_simulated_strand_states:
     input:
-        sce    = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/sce-{binsize}.txt",
+        sce    = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/sce-{binsize}.txt",
     output:
-        states = "strand_states/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/final.txt"
+        states = "strand_states/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}-{binsize}/final.txt"
     run:
         d = os.path.dirname(output.states)
         f = os.path.basename(output.states)
@@ -202,25 +203,14 @@ rule plot_mosaic_counts:
         {params.plot_command} {input.counts} {input.info} {output} > {log} 2>&1
         """
 
-rule plot_SV_calls_old:
-    input:
-        counts = "counts/simulation{seed}-{binsize}/{binsize}_fixed.txt.gz",
-        segs   = "segmentation2/simulation{seed}-{binsize}/{binsize}_fixed.{segments}.txt",
-        svs    = "sv_calls/simulation{seed}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
-        simul  = "simulation/variants/genome{seed}-{binsize}.txt"
-    output:
-        expand("sv_plots/simulation{{seed}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
-    script:
-        "utils/plot_sv_calls.R"
-
 rule plot_SV_calls_new:
     input:
-        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.txt.gz",
-        segs   = "segmentation2/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.{segments}.txt",
-        svs    = "sv_calls/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
-        simul  = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}/variants-{binsize}.txt"
+        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.txt.gz",
+        segs   = "segmentation2/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.{segments}.txt",
+        svs    = "sv_calls/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.{segments}/{method}.txt",
+        simul  = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/variants-{binsize}.txt"
     output:
-        expand("sv_plots/seed{{seed}}_size{{minsvsize}}-{{maxsvsize}}_vaf{{minvaf}}-{{maxvaf}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
+        expand("sv_plots/seed{{seed}}_size{{minsvsize}}-{{maxsvsize}}_vaf{{minvaf}}-{{maxvaf}}_{{svclass}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
     script:
         "utils/plot_sv_calls.R"
 

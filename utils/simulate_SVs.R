@@ -3,15 +3,16 @@
 library(data.table)
 
 args = commandArgs(trailingOnly=TRUE)
-if (length(args)!=6) {
-  stop("usage: ./simulate_SVs.R <seed> <sv-count> <min-size> <max-size> <min-distance> <output.tsv> \n")
+if (length(args)!=7) {
+  stop("usage: ./simulate_SVs.R <seed> <sv-count> <min-size> <max-size> <min-distance> <svclass> <output.tsv> \n")
 }
 
 set.seed(as.integer(args[1]))
 sv.count <- as.integer(args[2])
 SV_size_limits <- c(as.integer(args[3]), as.integer(args[4]))
 min.distance <- as.integer(args[5])
-output.file = args[6]
+svclass     = args[6]
+output.file = args[7]
 
 # GRCh38
 chrom_sizes = data.table(
@@ -61,7 +62,9 @@ get_SVs = function(chrom_sizes, SV_num, SV_size_limits, SV_types, buffer=1e6) {
     SVs
 }
 
-SV_types  = c("het_del", "hom_del", "het_dup", "hom_dup", "het_inv", "hom_inv", "inv_dup", "false_del")
+# SV_types  = c("het_del", "hom_del", "het_dup", "hom_dup", "het_inv", "hom_inv", "inv_dup", "false_del")
+SV_types  = svclass
+
 
 SVs = get_SVs(chrom_sizes, sv.count, SV_size_limits, SV_types, buffer=min.distance)
 
