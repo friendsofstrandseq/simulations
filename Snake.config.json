@@ -5,23 +5,25 @@
     "plot_script"   : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/qc.R",
 
     "bp_density"    : {
-	    "fraction02" : 0.02,
+        "fraction02" : 0.02,
         "fraction05" : 0.05,
-		"fraction08" : 0.08,
-		"fraction12" : 0.12,
-		"fraction15" : 0.15,
-		"fraction18" : 0.18,
-		"fraction20" : 0.20,
-		"fraction25" : 0.25,
-		"fraction30" : 0.30,
-		"fraction35" : 0.35,
-		"fraction45" : 0.45,
-		"fraction55" : 0.55,
-		"fraction65" : 0.65
+        "fraction08" : 0.08,
+        "fraction10" : 0.10,
+        "fraction12" : 0.12,
+        "fraction15" : 0.15,
+        "fraction18" : 0.18,
+        "fraction20" : 0.20,
+        "fraction25" : 0.25,
+        "fraction30" : 0.30,
+        "fraction35" : 0.35,
+        "fraction45" : 0.45,
+        "fraction50" : 0.50,
+        "fraction55" : 0.55,
+        "fraction65" : 0.65,
+        "fraction70" : 0.70,
+        "fraction100" : 1
     },
 
-    "simulation_min_vaf" : 0.01,
-    "simulation_max_vaf" : 1.0,
     "simulation_neg_binom_p" : {
         "50000" : 0.4,
         "100000" : 0.3,
@@ -29,7 +31,7 @@
     },
     "simulation_min_reads_per_library" :  500000,
     "simulation_max_reads_per_library" : 1500000,
-    "simulation_alpha" : 0.05,
+    "simulation_alpha" : 0.08,
 
     "genome_size" : 3e9
 
