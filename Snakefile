@@ -34,7 +34,7 @@ localrules:
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
-SIMUL_SEEDS     = [1]
+SIMUL_SEEDS     = [1,2,3,4,5,6,7,8]
 SIMUL_WINDOW    = [50000]
 NUM_CELLS       = config["num_cells"]
 METHODS         = ["simple_llr2",
@@ -68,15 +68,15 @@ rule simul:
                 method  = METHODS),
         #
         # Plot SV calls of some of the new simulations
-        expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
-                       seed      = SIMUL_SEEDS[1:2],
-                       sizerange = SIZE_RANGES,
-                       vafrange  = VAF_RANGES,
-                       segments  = SEGMENTS,
-                       binsize   = SIMUL_WINDOW,
-                       method    = METHODS,
-                       chrom     = CHROMOSOMES,
-                       svclass   = SV_CLASSES),
+        # expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
+        #                seed      = SIMUL_SEEDS[1:2],
+        #                sizerange = SIZE_RANGES,
+        #                vafrange  = VAF_RANGES,
+        #                segments  = SEGMENTS,
+        #                binsize   = SIMUL_WINDOW,
+        #                method    = METHODS,
+        #                chrom     = CHROMOSOMES,
+        #                svclass   = SV_CLASSES),
         expand("results/evaluation_stratified/meta-{binsize}.pdf",
                 binsize = SIMUL_WINDOW)
 
