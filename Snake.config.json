@@ -1,38 +1,36 @@
 {
     "chromosomes"   : ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22"],
-
     "mosaicatcher"  : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/build/mosaicatcher",
     "plot_script"   : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher/R/qc.R",
 
     "bp_density"    : {
-        "fraction02" : 0.02,
-        "fraction05" : 0.05,
-        "fraction08" : 0.08,
-        "fraction10" : 0.10,
-        "fraction12" : 0.12,
-        "fraction15" : 0.15,
-        "fraction18" : 0.18,
-        "fraction20" : 0.20,
-        "fraction25" : 0.25,
-        "fraction30" : 0.30,
-        "fraction35" : 0.35,
-        "fraction45" : 0.45,
-        "fraction50" : 0.50,
-        "fraction55" : 0.55,
-        "fraction65" : 0.65,
-        "fraction70" : 0.70,
+        "fraction02"  : 0.02,
+        "fraction05"  : 0.05,
+        "fraction08"  : 0.08,
+        "fraction10"  : 0.10,
+        "fraction12"  : 0.12,
+        "fraction15"  : 0.15,
+        "fraction18"  : 0.18,
+        "fraction20"  : 0.20,
+        "fraction25"  : 0.25,
+        "fraction30"  : 0.30,
+        "fraction35"  : 0.35,
+        "fraction45"  : 0.45,
+        "fraction50"  : 0.50,
+        "fraction55"  : 0.55,
+        "fraction65"  : 0.65,
+        "fraction70"  : 0.70,
         "fraction100" : 1
     },
-
     "simulation_neg_binom_p" : {
         "50000" : 0.4,
         "100000" : 0.3,
         "500000" : 0.1
     },
     "simulation_min_reads_per_library" :  500000,
-    "simulation_max_reads_per_library" : 1500000,
-    "simulation_alpha" : 0.08,
-
-    "genome_size" : 3e9
-
+    "simulation_max_reads_per_library" : 1200000,
+    "simulation_alpha"                 : 0.08,
+    "num_SVs_per_genome"               : 25,
+    "genome_size"                      : 3e9,
+    "num_cells"                        : 200
 }

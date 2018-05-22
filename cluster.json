@@ -37,11 +37,6 @@
     "mem"    : "2500M",
 	"time"   : "12:00"
   },
-  "sv_classifier_maryam" :
-  {
-    "mem"    : "2G",
-	"time"   : "45:00"
-  },
   "plot_mosaic_counts" :
   {
     "time"   : "20:00"
@@ -59,5 +54,9 @@
   "sv_classifier_mostsimple" :
   {
     "time"   : "03:00"
+  },
+  "mosaiClassifier_calc_probs" :
+  {
+    "mem"    : "1G"
   }
 }

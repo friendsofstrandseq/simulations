@@ -27,37 +27,49 @@ localrules:
     new_link_to_simulated_counts,
     new_link_to_simulated_strand_states,
     prepare_segments,
-    install_MaRyam,
+    install_mosaiClassifier,
     convert_SVprob_output,
     sv_classifier_filter
 
 
-NUM_SVS         = 25
-SIMUL_SEEDS     = [1,2,3]
-SIMUL_WINDOW    = [50000,100000]
-NUM_CELLS       = 200
-METHODS         = ["maryam",
-                   "simple_llr0", "simple_llr2", "simple_llr4",
-				   "merge_llr0",  "merge_llr2",  "merge_llr4",
-                   "simple_llr2___size300000-vaf2", "simple_llr2___size300000-vaf4",
-                   "simple_llr2___size500000-vaf2", "simple_llr2___size500000-vaf4",
-				   "merge_llr2___size500000-vaf2", "merge_llr2___size500000-vaf4"]
+### Global settings
+NUM_SVS         = config["num_SVs_per_genome"]
+SIMUL_SEEDS     = [1]
+SIMUL_WINDOW    = [50000]
+NUM_CELLS       = config["num_cells"]
+METHODS         = ["simple_llr2",
+                   "simple_llr4",
+                   "merge_llr2",
+                   "merge_llr4",
+                   "mc_simple",
+                   "mc_biallelic"]
 CHROMOSOMES     = config['chromosomes']
-SEGMENTS        = ["fraction10", "fraction20", "fraction30", "fraction50","fraction70", "fraction100"]
-SIZE_RANGES     = ["200000-500000", "500000-1000000", "1000000-3000000", "3000000-10000000"]
+SEGMENTS        = ["fraction10",
+                   "fraction20",
+                   "fraction30",
+                   "fraction50",
+                   "fraction70",
+                   "fraction100"]
+SIZE_RANGES     = ["200000-500000",
+                   "500000-1000000",
+                   "1000000-2000000",
+                   "2000000-5000000"]
 VAF_RANGES      = ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"]
 
+
+
+### Main rule
 rule simul:
     input:
         # New SV evaluation curves
         # (based on separate simulations for SV sizes and VAFs)
         expand("results/evaluation_stratified/{binsize}_{method}.pdf",
-                binsize = [50000],
+                binsize = SIMUL_WINDOW,
                 method  = METHODS),
         #
         # Plot SV calls of some of the new simulations
         expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
-                       seed = [5],
+                       seed      = SIMUL_SEEDS[1:2],
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
                        segments  = SEGMENTS,
@@ -76,6 +88,7 @@ def max_coverage(wildcards):
 
 def neg_binom_p(wildcards):
     return float(config["simulation_neg_binom_p"][wildcards.binsize])
+
 
 
 
@@ -169,6 +182,7 @@ rule new_link_to_simulated_strand_states:
 
 
 
+
 ################################################################################
 # Plots                                                                        #
 ################################################################################
@@ -211,6 +225,7 @@ rule plot_SV_calls_new:
         "utils/plot_sv_calls.R"
 
 
+
 ################################################################################
 # Segmentation                                                                 #
 ################################################################################
@@ -245,69 +260,12 @@ rule prepare_segments:
         "utils/helper.prepare_segments.R"
 
 
+
 ################################################################################
 # SV classification                                                            #
 ################################################################################
 
-rule install_MaRyam:
-    output:
-        "utils/R-packages2/MaRyam/R/MaRyam"
-    log:
-        "log/install_MaRyam.log"
-    shell:
-        """
-        TAR=$(which tar) Rscript utils/install_maryam.R > {log} 2>&1
-        """
-
-rule sv_classifier_maryam:
-    input:
-        maryam = "utils/R-packages2/MaRyam/R/MaRyam",
-        counts = "counts/{sample}/{windows}.txt.gz",
-        info   = "counts/{sample}/{windows}.info",
-        states = "strand_states/{sample}/final.txt",
-        bp     = "segmentation2/{sample}/{windows}.{segments}.txt"
-    output:
-        outdir = "sv_probabilities/{sample}/{windows}.{segments}/",
-        out1   = "sv_probabilities/{sample}/{windows}.{segments}/allSegCellProbs.table",
-        out2   = "sv_probabilities/{sample}/{windows}.{segments}/allSegCellGTprobs.table",
-        bamNames = "sv_probabilities/{sample}/{windows}.{segments}/bamNames.txt"
-    log:
-        "log/{sample}/run_sv_classification.{windows}.{segments}.txt"
-    params:
-        windowsize    = lambda wc: wc.windows.split("_")[0]
-    shell:
-        """
-        set -x
-        # set haplotypeInfo if phasing info is available
-        Rscript utils/MaRyam_pipeline.R \
-                binRCfile={input.counts} \
-                BRfile={input.bp} \
-                infoFile={input.info} \
-                stateFile={input.states} \
-                outputDir={output.outdir} \
-                bin.size={params.windowsize} \
-                K=22 \
-                maximumCN=4 \
-                utils/R-packages2/ > {log} 2>&1
-        """
-
-rule convert_SVprob_output:
-    input:
-        probs    = "sv_probabilities/{sample}/{windows}.{segments}/allSegCellProbs.table",
-        info     = "counts/{sample}/{windows}.info",
-        bamNames = "sv_probabilities/{sample}/{windows}.{segments}/bamNames.txt"
-    output:
-        "sv_calls/{sample}/{windows}.{segments}/maryam.txt"
-    params:
-        sample_name = lambda wc: wc.sample
-    log:
-        "log/{sample}/convert_SVprob_output.{windows}.{segments}.txt"
-    script:
-        "utils/helper.convert_svprob_output.R"
-
-
-
-### New SV classification
+### New SV classification (Sascha)
 
 rule sv_classifier_preparation:
     input:
@@ -353,17 +311,53 @@ rule sv_classifier_biallelic:
         "utils/sv_classifier_biallelic.R"
 
 
-rule sv_classifier_filter:
-    input:
-        "sv_calls/{sample}/{windows}.{bpdens}/{method}.txt"
+
+### Newest classifier: "MosaiClassifier"
+
+rule install_mosaiClassifier:
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/{method}___size{minsvsize}-vaf{minvaf}.txt"
-    params:
-        minsvsize = lambda wc: wc.minsvsize,
-        minvaf    = lambda wc: wc.minvaf,
-        numcells  = NUM_CELLS
+        "utils/mosaiClassifier.snakemake.R"
+    shell:
+        """
+        git clone https://github.com/friendsofstrandseq/pipeline.git mosaiClassifier
+        cd mosaiClassifier
+        git checkout mosaiClassifier
+        cd ../utils
+        ln -s ../mosaiClassifier/utils/mosaiClassifier
+        ln -s ../mosaiClassifier/utils/mosaiClassifier.snakemake.R
+        ln -s ../mosaiClassifier/utils/mosaiClassifier_call.snakemake.R
+        ln -s ../mosaiClassifier/utils/mosaiClassifier_call_biallelic.snakemake.R
+        """
+
+rule mosaiClassifier_calc_probs:
+    input:
+        counts = "counts/{sample}/{windows}.txt.gz",
+        info   = "counts/{sample}/{windows}.info",
+        states = "strand_states/{sample}/final.txt",
+        bp     = "segmentation2/{sample}/{windows}.{bpdens}.txt"
+    output:
+        output = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
+    log:
+        "log/{sample}/mosaiClassifier_calc_probs.{windows}.{bpdens}.txt"
     script:
-        "utils/filter_sv_calls.R"
+        "utils/mosaiClassifier.snakemake.R"
+
+rule mosaiClassifier_make_call:
+    input:
+        probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
+    output:
+        "sv_calls/{sample}/{windows}.{bpdens}/mc_simple.txt"
+    script:
+        "utils/mosaiClassifier_call.snakemake.R"
+
+rule mosaiClassifier_make_call_biallelic:
+    input:
+        probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
+    output:
+        "sv_calls/{sample}/{windows}.{bpdens}/mc_biallelic.txt"
+    script:
+        "utils/mosaiClassifier_call_biallelic.snakemake.R"
+
 
 
 
