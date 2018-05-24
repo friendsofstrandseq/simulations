@@ -34,7 +34,7 @@ localrules:
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
-SIMUL_SEEDS     = [1,2,3,4,5,6,7,8]
+SIMUL_SEEDS     = [1]
 SIMUL_WINDOW    = [50000]
 NUM_CELLS       = config["num_cells"]
 METHODS         = ["simple_llr2",
@@ -121,7 +121,7 @@ rule new_simulate_genome:
 
 rule new_simulate_counts:
     input:
-        config = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}_{svclass}/genome.tsv"
+        config = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/genome.tsv"
     output:
         counts   = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/counts-{binsize}.txt.gz",
         segments = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/segments-{binsize}.txt",
@@ -322,6 +322,7 @@ rule install_mosaiClassifier:
 
 rule mosaiClassifier_calc_probs:
     input:
+        installer = "utils/mosaiClassifier.snakemake.R",
         counts = "counts/{sample}/{windows}.txt.gz",
         info   = "counts/{sample}/{windows}.info",
         states = "strand_states/{sample}/final.txt",
