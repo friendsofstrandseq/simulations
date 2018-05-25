@@ -312,7 +312,6 @@ rule install_mosaiClassifier:
         """
         git clone https://github.com/friendsofstrandseq/pipeline.git mosaiClassifier
         cd mosaiClassifier
-        git checkout mosaiClassifier
         cd ../utils
         ln -s ../mosaiClassifier/utils/mosaiClassifier
         ln -s ../mosaiClassifier/utils/mosaiClassifier.snakemake.R
