@@ -57,6 +57,15 @@
   },
   "mosaiClassifier_calc_probs" :
   {
-    "mem"    : "1G"
+    "mem"    : "2G",
+    "time"   : "30:00"
+  },
+  "mosaiClassifier_make_call" :
+  {
+    "time"   : "20:00"
+  },
+  "mosaiClassifier_make_call_biallelic" :
+  {
+    "time"   : "20:00"
   }
 }
