@@ -39,8 +39,6 @@ SIMUL_WINDOW    = [50000]
 NUM_CELLS       = config["num_cells"]
 METHODS         = ["simple_llr2",
                    "simple_llr4",
-                   "merge_llr2",
-                   "merge_llr4",
                    "mc_simple",
                    "mc_biallelic"]
 CHROMOSOMES     = config['chromosomes']
@@ -279,16 +277,6 @@ rule sv_classifier_mostsimple:
         llr_cutoff = lambda wc: wc.llr
     script:
         "utils/sv_classifier_mostsimple.R"
-
-rule sv_classifier_merger:
-    input:
-        prob = "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
-    output:
-        "sv_calls/{sample}/{windows}.{bpdens}/merge_llr{llr}.txt"
-    params:
-        llr_cutoff = lambda wc: wc.llr
-    script:
-        "utils/sv_classifier_merger.R"
 
 
 rule sv_classifier_biallelic:
