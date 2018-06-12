@@ -82,21 +82,21 @@ newprobs[model != "ref"]
 x = melt(newprobs[model!="ref"], 
          id.vars = c("chrom","start","end","sample","cell", "state"), 
          measure.vars = c("p_ref","p_homInv", "p_hetInv", "p_hetDel","p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
-         variable.name = "SV_class",
+         variable.name = "sv_call_name",
          value.name    = "loglik")
 
 setkey(x, chrom, start, end, sample, cell)
 x = x[, .SD[order(loglik, decreasing=T)][1], by = .(chrom, start, end, sample, cell)]
-x = x[SV_class != "p_ref"]
+x = x[sv_call_name != "p_ref"]
 
 
 # Rename SV classes
-rename_svs = data.table(SV_class =              c("p_homInv", "p_hetInv", "p_hetDel", "p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
+rename_svs = data.table(sv_call_name =              c("p_homInv", "p_hetInv", "p_hetDel", "p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
                         SV_class_renamed =      c("inv_hom",  "inv_h1",   "del_h1",   "del_hom",  "dup_hom",  "dup_h1",   "idup_h1"))
-assert_that(all(x$SV_class %in% rename_svs$SV_class)) %>% invisible
-x = merge(x, rename_svs, by = "SV_class")
+assert_that(all(x$sv_call_name %in% rename_svs$sv_call_name)) %>% invisible
+x = merge(x, rename_svs, by = "sv_call_name")
 
-write.table(x[, .(chrom, start, end, sample, cell, SV_class = SV_class_renamed, loglikratio = NA)],
+write.table(x[, .(chrom, start, end, sample, cell, sv_call_name = SV_class_renamed, llr_to_ref = NA)],
             file = snakemake@output[[1]], quote=F, sep="\t", row.names = F)
 
 

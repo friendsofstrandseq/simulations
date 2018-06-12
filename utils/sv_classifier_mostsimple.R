@@ -35,7 +35,7 @@ prob = readRDS(snakemake@input[["prob"]]) # prob = readRDS("sv_probabilities/sim
 
 x = melt(prob, id.vars = c("chrom","start","end","sample","cell","p_ref"), 
      measure.vars = c("p_homInv", "p_hetInv", "p_hetDel","p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
-     variable.name = "SV_class",
+     variable.name = "sv_call_name",
      value.name    = "loglik")
 x = x[, .SD[loglik == max(loglik)][1], by = .(chrom, start, end, sample, cell)]
 
@@ -43,11 +43,11 @@ x = x[, .SD[loglik == max(loglik)][1], by = .(chrom, start, end, sample, cell)]
 x = x[loglik - p_ref > LLR]
 
 # Rename SV classes
-rename_svs = data.table(SV_class = c("p_homInv", "p_hetInv", "p_hetDel", "p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
+rename_svs = data.table(sv_call_name = c("p_homInv", "p_hetInv", "p_hetDel", "p_homDel", "p_homDup", "p_hetDup", "p_hetIdup"),
                         SV_class_renamed =      c("inv_hom",  "inv_h1",  "del_h1",  "del_hom",  "dup_hom",  "dup_h1",  "idup_h1"))
-assert_that(all(x$SV_class %in% rename_svs$SV_class)) %>% invisible
-x = merge(x, rename_svs, by = "SV_class")
+assert_that(all(x$sv_call_name %in% rename_svs$sv_call_name)) %>% invisible
+x = merge(x, rename_svs, by = "sv_call_name")
 
-write.table(x[, .(chrom, start, end, sample, cell, SV_class = SV_class_renamed, loglikratio = loglik - p_ref)],
+write.table(x[, .(chrom, start, end, sample, cell, sv_call_name = SV_class_renamed, llr_to_ref = loglik - p_ref)],
             file = snakemake@output[[1]], quote=F, sep="\t", row.names = F)
 
