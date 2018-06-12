@@ -16,11 +16,19 @@ input.calls = snakemake@input[["calls"]]
 
 ### Read simulated SVs
 message("[Evaluation] Reading ", length(input.truth), " simulated SV sets ...")
-regex = "simulation_new/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)/variants-(\\d+).txt"
+regex = "simulation_new/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)/variants-(\\d+).txt"
 Truth = NULL
+num_truth = 0
 for (f in input.truth) {
   vars = str_match(f, regex)
   t = fread(f)
+
+  if (nrow(t) == 0) {
+    message("No SV calls in ", t)
+    next
+  }
+
+  num_truth = num_truth + 1
   assert_that("chrom"   %in% colnames(t),
               "start"   %in% colnames(t),
               "end"     %in% colnames(t),
@@ -35,19 +43,21 @@ for (f in input.truth) {
            SIMUL_maxsize = as.integer(vars[4]),
            SIMUL_minvaf  = as.integer(vars[5]),
            SIMUL_maxvaf  = as.integer(vars[6]),
-           SIMUL_binsize = as.integer(vars[7]))]
+           SIMUL_svclass = vars[7],
+           SIMUL_binsize = as.integer(vars[8]))]
   Truth = rbind(Truth, t)
 }
+message(num_truth, "/", length(input.truth), " Simulated SV call sets were not empty")
 
 
 
 ### Read SV calls
 message("[Evaluation] Reading ", length(input.calls), " data sets ...")
-regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
+regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
 Recall = NULL
 Precision = NULL
 for (f in input.calls) {
-  
+
   vars = str_match(f, regex)
   d = fread(f)
   assert_that("chrom"    %in% colnames(d),
@@ -55,19 +65,18 @@ for (f in input.calls) {
               "end"      %in% colnames(d),
               "sample"   %in% colnames(d),
               "cell"     %in% colnames(d),
-              "SV_class" %in% colnames(d)) %>% invisible
+              "sv_call_name" %in% colnames(d)) %>% invisible
 
   # Get corresponding true SV calls
   truth = Truth[SIMUL_id      == as.integer(vars[2]) &
                 SIMUL_minsize == as.integer(vars[3]) &
                 SIMUL_maxsize == as.integer(vars[4]) & 
                 SIMUL_minvaf  == as.integer(vars[5]) &
-                SIMUL_maxvaf  == as.integer(vars[6]), ]
-  assert_that(nrow(truth) > 0) %>% invisible
-  
-  
+                SIMUL_maxvaf  == as.integer(vars[6]) &
+                SIMUL_svclass == vars[7], ]
+
   if (nrow(truth)==0) {
-    message("Skipping file because there are no simulated SVs: ", f)
+    message("No simulated SV calls for call set. Ignore ", f)
     next
   }
   
@@ -83,9 +92,10 @@ for (f in input.calls) {
                 SIMUL_maxsize   = as.integer(vars[4]),
                 SIMUL_minvaf    = as.integer(vars[5]),
                 SIMUL_maxvaf    = as.integer(vars[6]),
-                SIMUL_binsize   = as.integer(vars[7]),
-                SIMUL_fraction  = as.integer(vars[9]),
-                SIMUL_method    = vars[10]) ]
+                SIMUL_svclass   = vars[7],
+                SIMUL_binsize   = as.integer(vars[8]),
+                SIMUL_fraction  = as.integer(vars[10]),
+                SIMUL_method    = vars[11]) ]
   Recall = rbind(Recall, recall)
   
   precision = rp[["precision"]]
@@ -97,6 +107,7 @@ for (f in input.calls) {
                      SIMUL_maxvaf    = integer(),
                      SIMUL_binsize   = integer(),
                      SIMUL_fraction  = integer(),
+                     SIMUL_svclass   = character(),
                      SIMUL_method    = character()) ]
   } else {
     precision[, `:=`(SIMUL_id        = as.integer(vars[2]),
@@ -104,9 +115,10 @@ for (f in input.calls) {
                      SIMUL_maxsize   = as.integer(vars[4]),
                      SIMUL_minvaf    = as.integer(vars[5]),
                      SIMUL_maxvaf    = as.integer(vars[6]),
-                     SIMUL_binsize   = as.integer(vars[7]),
-                     SIMUL_fraction  = as.integer(vars[9]),
-                     SIMUL_method    = vars[10]) ]
+                     SIMUL_svclass   = vars[7],
+                     SIMUL_binsize   = as.integer(vars[8]),
+                     SIMUL_fraction  = as.integer(vars[10]),
+                     SIMUL_method    = vars[11]) ]
   }
   Precision = rbind(Precision, precision)
 }
@@ -122,7 +134,9 @@ xxx = Recall[, .(N        = .N,
                     SIMUL_maxsize,
                     SIMUL_minvaf,
                     SIMUL_maxvaf,
-                    SIMUL_fraction)]
+                    SIMUL_fraction,
+                    SIMUL_svclass,
+                    SIMUL_method)]
 assert_that(xxx[, all(N == N_)]) %>% invisible
 yyy = Precision[, .(N        = .N,
                     bp       = sum(matches_SV)/.N,
@@ -132,9 +146,17 @@ yyy = Precision[, .(N        = .N,
                        SIMUL_maxsize,
                        SIMUL_minvaf,
                        SIMUL_maxvaf,
-                       SIMUL_fraction)]
+                       SIMUL_svclass,
+                       SIMUL_fraction,
+                       SIMUL_method)]
 zzz = merge(xxx,yyy, suffixes = c(".recall", ".precision"),
-            by = c("SIMUL_minsize", "SIMUL_maxsize", "SIMUL_minvaf", "SIMUL_maxvaf", "SIMUL_fraction"))
+            by = c("SIMUL_minsize",
+                   "SIMUL_maxsize",
+                   "SIMUL_minvaf",
+                   "SIMUL_maxvaf",
+                   "SIMUL_svclass",
+                   "SIMUL_fraction",
+                   "SIMUL_method"))
 
 
 # Beatify data set prior to plotting
@@ -153,30 +175,39 @@ zzz[, SV_size := factor(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxs
 zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         levels = unique(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"))[order(unique(SIMUL_minvaf))],
                         ordered = T)]
-zzz = zzz[order(SIMUL_fraction, SIMUL_minvaf, SIMUL_minsize)]
+zzz[, SV_class := SIMUL_svclass]
+zzz = zzz[order(SIMUL_method, SIMUL_fraction, SIMUL_svclass, SIMUL_minvaf, SIMUL_minsize)]
 
 
 write.table(zzz, file = paste0(snakemake@output[[1]], ".txt"),
             quote=F, sep = "\t", row.names=F, col.names = T)
 
-p <- ggplot(zzz) +
-  geom_path(aes(bp.recall, bp.precision), 
-            linetype = "solid", color = "darkgrey") +
-  geom_point(aes(bp.recall, bp.precision, col = SIMUL_fraction)) +
-  geom_path(aes(bp_sv.recall, bp_sv.precision), 
-            linetype = "dashed") +
-  geom_point(aes(bp_sv.recall, bp_sv.precision, col = SIMUL_fraction), 
-             shape = 17) +
-  geom_text(x = 0, y = 0, hjust = 0, vjust = 0, aes(label = paste("SVs =",V1)),
-            data = zzz[, N.recall[1], by = .(SV_size, SV_vaf)]) +
-  geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
-            data = zzz[, .(min(N.precision),max(N.precision)), by = .(SV_size, SV_vaf)]) +
-  facet_grid(SV_size ~ SV_vaf) +
-  scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
-  theme_bw() + theme(legend.position = "bottom") +
-  coord_cartesian(ylim = c(0,1), xlim = c(0,1))
 
 cairo_pdf(file = snakemake@output[[1]], width=21, height = 14, onefile=T)
-print(p)
+for (sv_class in unique(zzz$SV_class)) {
+  for (method in unique(zzz$SIMUL_method)) {
+
+    p <- ggplot(zzz[SV_class == sv_class & SIMUL_method == method]) +
+      geom_path(aes(bp.recall, bp.precision),
+                linetype = "solid", color = "darkgrey") +
+      geom_point(aes(bp.recall, bp.precision, col = SIMUL_fraction)) +
+      geom_path(aes(bp_sv.recall, bp_sv.precision),
+                linetype = "dashed") +
+      geom_point(aes(bp_sv.recall, bp_sv.precision, col = SIMUL_fraction),
+                 shape = 17) +
+      geom_text(x = 0, y = 0, hjust = 0, vjust = 0, aes(label = paste("SVs =",V1)),
+                data = zzz[, N.recall[1], by = .(SV_size, SV_vaf)]) +
+      geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
+                data = zzz[, .(min(N.precision),max(N.precision)), by = .(SV_size, SV_vaf)]) +
+      facet_grid(SV_size ~ SV_vaf) +
+      scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
+      theme_bw() +
+      theme(legend.position = "bottom") +
+      coord_cartesian(ylim = c(0,1), xlim = c(0,1)) +
+      ggtitle(sv_class)
+
+    print(p)
+  }
+}
 dev.off()
 

@@ -125,11 +125,11 @@ rename_SV_classes <- function(calls) {
   if(nrow(calls)==0) {
       return(calls)
   }
-  rename_svs = data.table(SV_class =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1", "idup_h2"),
-                          SV_class_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "inv_dup", "inv_dup"))
-  assert_that(all(calls$SV_class %in% rename_svs$SV_class)) %>% invisible
-  calls = merge(calls, rename_svs, by = "SV_class")
-  calls[, `:=`(SV_class = SV_class_renamed, SV_class_renamed = NULL)][]
+  rename_svs = data.table(sv_call_name =         c("dup_h1",  "dup_h2",  "dup_hom", "del_h1",  "del_h2",  "del_hom", "inv_h1",  "inv_h2",  "inv_hom", "idup_h1", "idup_h2", "complex"),
+                          sv_call_renamed = c("het_dup", "het_dup", "hom_dup", "het_del", "het_del", "hom_del", "het_inv", "het_inv", "hom_inv", "inv_dup", "inv_dup", "complex"))
+  assert_that(all(calls$sv_call_name %in% rename_svs$sv_call_name)) %>% invisible
+  calls = merge(calls, rename_svs, by = "sv_call_name")
+  calls[, `:=`(sv_call_name = sv_call_renamed, sv_call_renamed = NULL)][]
   return(calls)
 }
 
@@ -150,7 +150,7 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
               "chrom"   %in% colnames(calls),
               "start"   %in% colnames(calls),
               "end"     %in% colnames(calls),
-              "SV_class" %in% colnames(calls)) %>% invisible
+              "sv_call_name" %in% colnames(calls)) %>% invisible
   
   # Find overlapping SV calls
   L = find_overlapping_calls(truth, calls, rec_ovl)
@@ -197,7 +197,7 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
 
     # View centered on true SV calls (recall)
     recall = merge(x[, .(truth_id, sample, cell, chrom, start, end, called_id, SV_real = SV_type)],
-                   y[, .(truth_id, sample, cell, SV_found = SV_class)],
+                   y[, .(truth_id, sample, cell, SV_found = sv_call_name)],
                    by = c("truth_id", "sample", "cell"),
                    all.x = T) %>%
       .[, .(SV_size = (end - start + 1)[1],
@@ -210,7 +210,7 @@ recall_precision <- function(truth, calls, rec_ovl = 0.8) {
 
     # View centered on called SVs (precision)
     # Note that SV size and VAF are now defined based on the CALLED SVs !!! this can be slighlty counter-intuitive.
-    precision = merge(y[, .(called_id, sample, cell, chrom, start, end, SV_found = SV_class)],
+    precision = merge(y[, .(called_id, sample, cell, chrom, start, end, SV_found = sv_call_name)],
           x[, .(called_id, sample, cell, truth_id, SV_real = SV_type)],
           by = c("called_id", "sample", "cell"),
           all.x = T) %>%
