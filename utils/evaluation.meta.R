@@ -21,19 +21,21 @@ for (f in snakemake@input) {
 D
 
 cairo_pdf(snakemake@output[[1]], width = 16, height = 12, onefile = T)
-for (sv_size_ in unique(D$SIMUL_minsize)) {
-  for (vaf_ in unique(D$SIMUL_minvaf) ) {
-    E = D[SIMUL_minsize == sv_size_ & SIMUL_minvaf == vaf_]
-    size_string = paste(format_Mb(unique(E$SIMUL_minsize)), "-", format_Mb(unique(E$SIMUL_maxsize)))
-    vaf_string  = paste0(unique(E$SIMUL_minvaf),"-",unique(E$SIMUL_maxvaf), " %")
-    p <- ggplot(E) +
-      geom_path(aes(bp.recall, bp.precision, col = method)) +
-      geom_point(aes(bp.recall, bp.precision, col = method)) +
-      theme_bw() + 
-      theme(legend.position = "bottom") +
-      coord_cartesian(ylim = c(0,1), xlim = c(0,1)) + 
-      ggtitle(paste0("SV size ", size_string, " with a VAF of ", vaf_string))
-    print(p)
+for (sv_class_ in unique(D$SIMUL_svclass)) {
+  for (sv_size_ in unique(D$SIMUL_minsize)) {
+    for (vaf_ in unique(D$SIMUL_minvaf) ) {
+      E = D[SIMUL_minsize == sv_size_ & SIMUL_minvaf == vaf_]
+      size_string = paste(format_Mb(unique(E$SIMUL_minsize)), "-", format_Mb(unique(E$SIMUL_maxsize)))
+      vaf_string  = paste0(unique(E$SIMUL_minvaf),"-",unique(E$SIMUL_maxvaf), " %")
+      p <- ggplot(E) +
+        geom_path(aes(bp.recall, bp.precision, col = method)) +
+        geom_point(aes(bp.recall, bp.precision, col = method)) +
+        theme_bw() + 
+        theme(legend.position = "bottom") +
+        coord_cartesian(ylim = c(0,1), xlim = c(0,1)) + 
+        ggtitle(paste0("SV size ", size_string, " with a VAF of ", vaf_string))
+      print(p)
+    }
   }
 }
 dev.off()

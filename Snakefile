@@ -61,11 +61,8 @@ rule simul:
     input:
         # New SV evaluation curves
         # (based on separate simulations for SV sizes and VAFs)
-        expand("results/evaluation_stratified/{binsize}_{method}.pdf",
-                binsize = SIMUL_WINDOW,
-                method  = METHODS),
         #
-        # Plot SV calls of some of the new simulations
+        # Do not Plot SV calls of some of the new simulations
         # expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
         #                seed      = SIMUL_SEEDS[1:2],
         #                sizerange = SIZE_RANGES,
@@ -75,7 +72,7 @@ rule simul:
         #                method    = METHODS,
         #                chrom     = CHROMOSOMES,
         #                svclass   = SV_CLASSES),
-        expand("results/evaluation_stratified/meta-{binsize}.pdf",
+        expand("results/meta-{binsize}.pdf",
                 binsize = SIMUL_WINDOW)
 
 
@@ -360,17 +357,18 @@ rule evaluation_newer_version:
                        segments  = SEGMENTS,
                        svclass   = SV_CLASSES)
     output:
-        "results/evaluation_stratified/{binsize}_{method}.pdf",
-        "results/evaluation_stratified/{binsize}_{method}.pdf.txt"
+        "results/{binsize}_{method}.pdf",
+        "results/{binsize}_{method}.pdf.txt"
     script:
         "utils/evaluation.stratified.R"
 
 
 rule evaluation_meta:
     input:
-        expand("results/evaluation_stratified/{{binsize}}_{method}.pdf.txt",
+        expand("results/{{binsize}}_{method}.pdf.txt",
                method = METHODS)
     output:
-        "results/evaluation_stratified/meta-{binsize}.pdf"
+        "results/meta-{binsize}.pdf"
     script:
         "utils/evaluation.meta.R"
+
