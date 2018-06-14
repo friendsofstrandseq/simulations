@@ -94,8 +94,7 @@ for (f in input.calls) {
                 SIMUL_maxvaf    = as.integer(vars[6]),
                 SIMUL_svclass   = vars[7],
                 SIMUL_binsize   = as.integer(vars[8]),
-                SIMUL_fraction  = as.integer(vars[10]),
-                SIMUL_method    = vars[11]) ]
+                SIMUL_fraction  = as.integer(vars[10])) ]
   Recall = rbind(Recall, recall)
   
   precision = rp[["precision"]]
@@ -105,10 +104,9 @@ for (f in input.calls) {
                      SIMUL_maxsize   = integer(),
                      SIMUL_minvaf    = integer(),
                      SIMUL_maxvaf    = integer(),
-                     SIMUL_binsize   = integer(),
-                     SIMUL_fraction  = integer(),
                      SIMUL_svclass   = character(),
-                     SIMUL_method    = character()) ]
+                     SIMUL_binsize   = integer(),
+                     SIMUL_fraction  = integer()) ]
   } else {
     precision[, `:=`(SIMUL_id        = as.integer(vars[2]),
                      SIMUL_minsize   = as.integer(vars[3]),
@@ -117,8 +115,7 @@ for (f in input.calls) {
                      SIMUL_maxvaf    = as.integer(vars[6]),
                      SIMUL_svclass   = vars[7],
                      SIMUL_binsize   = as.integer(vars[8]),
-                     SIMUL_fraction  = as.integer(vars[10]),
-                     SIMUL_method    = vars[11]) ]
+                     SIMUL_fraction  = as.integer(vars[10])) ]
   }
   Precision = rbind(Precision, precision)
 }
@@ -135,8 +132,7 @@ xxx = Recall[, .(N        = .N,
                     SIMUL_minvaf,
                     SIMUL_maxvaf,
                     SIMUL_fraction,
-                    SIMUL_svclass,
-                    SIMUL_method)]
+                    SIMUL_svclass)]
 assert_that(xxx[, all(N == N_)]) %>% invisible
 yyy = Precision[, .(N        = .N,
                     bp       = sum(matches_SV)/.N,
@@ -147,16 +143,14 @@ yyy = Precision[, .(N        = .N,
                        SIMUL_minvaf,
                        SIMUL_maxvaf,
                        SIMUL_svclass,
-                       SIMUL_fraction,
-                       SIMUL_method)]
+                       SIMUL_fraction)]
 zzz = merge(xxx,yyy, suffixes = c(".recall", ".precision"),
             by = c("SIMUL_minsize",
                    "SIMUL_maxsize",
                    "SIMUL_minvaf",
                    "SIMUL_maxvaf",
                    "SIMUL_svclass",
-                   "SIMUL_fraction",
-                   "SIMUL_method"))
+                   "SIMUL_fraction"))
 
 
 # Beatify data set prior to plotting
@@ -176,7 +170,7 @@ zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         levels = unique(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"))[order(unique(SIMUL_minvaf))],
                         ordered = T)]
 zzz[, SV_class := SIMUL_svclass]
-zzz = zzz[order(SIMUL_method, SIMUL_fraction, SIMUL_svclass, SIMUL_minvaf, SIMUL_minsize)]
+zzz = zzz[order(SIMUL_fraction, SIMUL_svclass, SIMUL_minvaf, SIMUL_minsize)]
 
 
 write.table(zzz, file = paste0(snakemake@output[[1]], ".txt"),
@@ -185,9 +179,8 @@ write.table(zzz, file = paste0(snakemake@output[[1]], ".txt"),
 
 cairo_pdf(file = snakemake@output[[1]], width=21, height = 14, onefile=T)
 for (sv_class in unique(zzz$SV_class)) {
-  for (method in unique(zzz$SIMUL_method)) {
 
-    p <- ggplot(zzz[SV_class == sv_class & SIMUL_method == method]) +
+    p <- ggplot(zzz[SV_class == sv_class]) +
       geom_path(aes(bp.recall, bp.precision),
                 linetype = "solid", color = "darkgrey") +
       geom_point(aes(bp.recall, bp.precision, col = SIMUL_fraction)) +
@@ -207,7 +200,6 @@ for (sv_class in unique(zzz$SV_class)) {
       ggtitle(sv_class)
 
     print(p)
-  }
 }
 dev.off()
 
