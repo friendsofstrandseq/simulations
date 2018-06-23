@@ -19,28 +19,22 @@ wildcard_constraints:
 
 localrules:
     simul,
-    simulate_genome,
-    add_vafs_to_simulated_genome,
-    link_to_simulated_counts,
-    link_to_simulated_strand_states,
     new_simulate_genome,
     new_link_to_simulated_counts,
     new_link_to_simulated_strand_states,
     prepare_segments,
     install_mosaiClassifier,
-    convert_SVprob_output,
-    sv_classifier_filter
+	evaluation_newer_version,
+    evaluation_meta
+
 
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
-SIMUL_SEEDS     = [1]
+SIMUL_SEEDS     = [1,2,3,4,5]
 SIMUL_WINDOW    = [50000]
 NUM_CELLS       = config["num_cells"]
-METHODS         = ["simple_llr2",
-                   "simple_llr4",
-                   "mc_simple",
-                   "mc_biallelic"]
+METHODS         = ["mc_simple", "mc_biallelic"]
 CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction10",
                    "fraction20",
@@ -53,7 +47,7 @@ SIZE_RANGES     = ["200000-500000",
                    "1000000-2000000",
                    "2000000-5000000"]
 VAF_RANGES      = ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"]
-SV_CLASSES      = ["het_del", "het_dup", "het_inv"]
+SV_CLASSES      = ["het_del", "het_dup", "het_inv","hom_del","hom_dup","hom_inv","inv_dup"]
 
 
 ### Main rule
@@ -132,7 +126,7 @@ rule new_simulate_counts:
         cell_count   = NUM_CELLS,
         alpha        = config["simulation_alpha"]
     log:
-        "log/simulate_counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}.txt"
+        "log/simulate_counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}-{binsize}.txt"
     shell:
         """
             {params.mc_command} simulate \
