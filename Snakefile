@@ -31,7 +31,7 @@ localrules:
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
-SIMUL_SEEDS     = [1,2,3,4,5]
+SIMUL_SEEDS     = [1,2,3,4]
 SIMUL_WINDOW    = [50000]
 NUM_CELLS       = config["num_cells"]
 METHODS         = ["mc_simple", "mc_biallelic"]
@@ -39,6 +39,7 @@ CHROMOSOMES     = config['chromosomes']
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
+                   "fraction40",
                    "fraction50",
                    "fraction70",
                    "fraction100"]
@@ -222,7 +223,10 @@ rule segmentation:
     shell:
         """
         {params.mc_command} segment \
-        -m 0.2 -M 50000000 -o {output} \
+        --remove-none \
+        --forbid-small-segments 4 \
+        -M 50000000 \
+        -o {output} \
         {input} > {log} 2>&1
         """
 
