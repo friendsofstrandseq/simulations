@@ -19,59 +19,37 @@ wildcard_constraints:
 
 localrules:
     simul,
-    simulate_genome,
-    add_vafs_to_simulated_genome,
-    link_to_simulated_counts,
-    link_to_simulated_strand_states,
     new_simulate_genome,
     new_link_to_simulated_counts,
     new_link_to_simulated_strand_states,
     prepare_segments,
-    install_mosaiClassifier,
-    convert_SVprob_output,
-    sv_classifier_filter
+    install_mosaiClassifier
+
 
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
-SIMUL_SEEDS     = [1]
-SIMUL_WINDOW    = [50000]
+SIMUL_SEEDS     = config["seeds"]
+SIMUL_WINDOW    = config["window_sizes"]
 NUM_CELLS       = config["num_cells"]
-METHODS         = ["simple_llr2",
-                   "simple_llr4",
-                   "mc_simple",
-                   "mc_biallelic"]
-CHROMOSOMES     = config['chromosomes']
+SIZE_RANGES     = config["size_ranges"]
+VAF_RANGES      = config["vaf_ranges"]
+SV_CLASSES      = config["sv_classes"]
+METHODS         = ["mc_simple", "mc_biallelic"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
                    "fraction50",
                    "fraction70",
                    "fraction100"]
-SIZE_RANGES     = ["200000-500000",
-                   "500000-1000000",
-                   "1000000-2000000",
-                   "2000000-5000000"]
-VAF_RANGES      = ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"]
-SV_CLASSES      = ["het_del", "het_dup", "het_inv"]
+
+
+
 
 
 ### Main rule
 rule simul:
     input:
-        # New SV evaluation curves
-        # (based on separate simulations for SV sizes and VAFs)
-        #
-        # Do not Plot SV calls of some of the new simulations
-        # expand("sv_plots/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.{chrom}.pdf",
-        #                seed      = SIMUL_SEEDS[1:2],
-        #                sizerange = SIZE_RANGES,
-        #                vafrange  = VAF_RANGES,
-        #                segments  = SEGMENTS,
-        #                binsize   = SIMUL_WINDOW,
-        #                method    = METHODS,
-        #                chrom     = CHROMOSOMES,
-        #                svclass   = SV_CLASSES),
         expand("results/meta-{binsize}.pdf",
                 binsize = SIMUL_WINDOW)
 
@@ -178,40 +156,6 @@ rule new_link_to_simulated_strand_states:
         shell("cd {d} && ln -s ../../{input.sce} {f} && cd ../..")
 
 
-
-
-################################################################################
-# Plots                                                                        #
-################################################################################
-
-rule plot_mosaic_counts:
-    input:
-        counts = "counts/{sample}/{file_name}.txt.gz",
-        info   = "counts/{sample}/{file_name}.info"
-    output:
-        "plots/{sample}/{file_name}.pdf"
-    log:
-        "log/plot_mosaic_counts/{sample}.{file_name}.txt"
-    params:
-        plot_command = "Rscript " + config["plot_script"]
-    shell:
-        """
-        {params.plot_command} {input.counts} {input.info} {output} > {log} 2>&1
-        """
-
-rule plot_SV_calls_new:
-    input:
-        counts = "counts/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.txt.gz",
-        segs   = "segmentation2/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.{segments}.txt",
-        svs    = "sv_calls/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}-{binsize}_{svclass}/{binsize}_fixed.{segments}/{method}.txt",
-        simul  = "simulation_new/seed{seed}_size{minsvsize}-{maxsvsize}_vaf{minvaf}-{maxvaf}_{svclass}/variants-{binsize}.txt"
-    output:
-        expand("sv_plots/seed{{seed}}_size{{minsvsize}}-{{maxsvsize}}_vaf{{minvaf}}-{{maxvaf}}_{{svclass}}-{{binsize}}/{{binsize}}_fixed.{{segments}}/{{method}}.{chrom}.pdf", chrom = config['chromosomes'])
-    script:
-        "utils/plot_sv_calls.R"
-
-
-
 ################################################################################
 # Segmentation                                                                 #
 ################################################################################
@@ -222,13 +166,17 @@ rule segmentation:
     output:
         "segmentation/{sample}/{file_name}.txt"
     log:
-        "log/{sample}/segmentation.{file_name}.txt"
+        "log/segmentation/{sample}/{file_name}.log"
     params:
         mc_command = config["mosaicatcher"]
     shell:
         """
         {params.mc_command} segment \
-        -m 0.2 -M 50000000 -o {output} \
+        --remove-none \
+        -m 0.4 \
+        --max_cp_sqrt \
+        -M 50000000 \
+        -o {output} \
         {input} > {log} 2>&1
         """
 
@@ -239,7 +187,7 @@ rule prepare_segments:
     output:
         "segmentation2/{sample}/{windows}.{bpdens}.txt"
     log:
-        "log/{sample}/prepare_segments.{windows}.{bpdens}.txt"
+        "log/prepare_segments/{sample}/{windows}.{bpdens}.log"
     params:
         quantile = lambda wc: config["bp_density"][wc.bpdens]
     script:
@@ -250,45 +198,6 @@ rule prepare_segments:
 ################################################################################
 # SV classification                                                            #
 ################################################################################
-
-### New SV classification (Sascha)
-
-rule sv_classifier_preparation:
-    input:
-        counts = "counts/{sample}/{windows}.txt.gz",
-        info   = "counts/{sample}/{windows}.info",
-        states = "strand_states/{sample}/final.txt",
-        bp     = "segmentation2/{sample}/{windows}.{bpdens}.txt"
-    output:
-        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
-    script:
-        "utils/sv_classifier.R"
-
-
-rule sv_classifier_mostsimple:
-    input:
-        prob = "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
-    output:
-        "sv_calls/{sample}/{windows}.{bpdens}/simple_llr{llr}.txt"
-    params:
-        llr_cutoff = lambda wc: wc.llr
-    script:
-        "utils/sv_classifier_mostsimple.R"
-
-
-rule sv_classifier_biallelic:
-    input:
-        "sv_probabilities/{sample}/{windows}.{bpdens}/raw_probabilities.Rdata"
-    output:
-        prob = "sv_calls/{sample}/{windows}.{bpdens}/biallelic_min{mincells}cells.txt"
-    params:
-        mincells = lambda wc: wc.mincells
-    script:
-        "utils/sv_classifier_biallelic.R"
-
-
-
-### Newest classifier: "MosaiClassifier"
 
 rule install_mosaiClassifier:
     output:
@@ -304,9 +213,18 @@ rule install_mosaiClassifier:
         ln -s ../mosaiClassifier/utils/mosaiClassifier_call_biallelic.snakemake.R
         """
 
+rule mosaiClassifier_make_call:
+    input:
+        probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
+    output:
+        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}.txt"
+    log:
+        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.{llr}.log"
+    script:
+        "utils/mosaiClassifier_call.snakemake.R"
+
 rule mosaiClassifier_calc_probs:
     input:
-        installer = "utils/mosaiClassifier.snakemake.R",
         counts = "counts/{sample}/{windows}.txt.gz",
         info   = "counts/{sample}/{windows}.info",
         states = "strand_states/{sample}/final.txt",
@@ -314,23 +232,17 @@ rule mosaiClassifier_calc_probs:
     output:
         output = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     log:
-        "log/{sample}/mosaiClassifier_calc_probs.{windows}.{bpdens}.txt"
+        "log/mosaiClassifier_calc_probs/{sample}/{windows}.{bpdens}.log"
     script:
         "utils/mosaiClassifier.snakemake.R"
-
-rule mosaiClassifier_make_call:
-    input:
-        probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
-    output:
-        "sv_calls/{sample}/{windows}.{bpdens}/mc_simple.txt"
-    script:
-        "utils/mosaiClassifier_call.snakemake.R"
 
 rule mosaiClassifier_make_call_biallelic:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/mc_biallelic.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}.txt"
+    log:
+        "log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.{llr}.log"
     script:
         "utils/mosaiClassifier_call_biallelic.snakemake.R"
 
