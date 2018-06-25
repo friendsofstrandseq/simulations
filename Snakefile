@@ -35,7 +35,7 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["mc_simple", "mc_biallelic"]
+METHODS         = ["simpleCalls_llr1", "biAllelic_llr1"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
@@ -173,8 +173,7 @@ rule segmentation:
         """
         {params.mc_command} segment \
         --remove-none \
-        -m 0.4 \
-        --max_cp_sqrt \
+        --forbid-small-segments 4 \
         -M 50000000 \
         -o {output} \
         {input} > {log} 2>&1
@@ -183,7 +182,8 @@ rule segmentation:
 # Pick a few segmentations and prepare the input files for SV classification
 rule prepare_segments:
     input:
-        "segmentation/{sample}/{windows}.txt"
+        "segmentation/{sample}/{windows}.txt",
+        "utils/helper.prepare_segments.R"
     output:
         "segmentation2/{sample}/{windows}.{bpdens}.txt"
     log:
@@ -201,7 +201,8 @@ rule prepare_segments:
 
 rule install_mosaiClassifier:
     output:
-        "utils/mosaiClassifier.snakemake.R"
+        "utils/mosaiClassifier.snakemake.R",
+        "utils/helper.prepare_segments.R"
     shell:
         """
         git clone https://github.com/friendsofstrandseq/pipeline.git mosaiClassifier
@@ -211,6 +212,7 @@ rule install_mosaiClassifier:
         ln -s ../mosaiClassifier/utils/mosaiClassifier.snakemake.R
         ln -s ../mosaiClassifier/utils/mosaiClassifier_call.snakemake.R
         ln -s ../mosaiClassifier/utils/mosaiClassifier_call_biallelic.snakemake.R
+        ln -s ../mosaiClassifier/utils/helper.prepare_segments.R
         """
 
 rule mosaiClassifier_make_call:
