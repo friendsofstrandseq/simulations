@@ -12,9 +12,9 @@
         "fraction100" : 1
     },
     "simulation_neg_binom_p" : {
-        "50000" : 0.4,
-        "100000" : 0.3,
-        "500000" : 0.1
+        "50000" : 0.6,
+        "100000" : 0.5,
+        "500000" : 0.4
     },
     "simulation_min_reads_per_library" :  500000,
     "simulation_max_reads_per_library" : 1200000,
@@ -23,11 +23,10 @@
     "genome_size"                      : 3e9,
     "num_cells"                        : 200,
 
-
-    "seeds"          : [1,2],
+    "seeds"          : [1],
     "window_sizes"   : 50000,
-    "size_ranges"    : ["200000-500000", "500000-1000000", "1000000-2000000", "2000000-5000000"],
-    "vaf_ranges"     : ["2-5", "5-10", "10-20", "20-40", "40-80", "95-100"],
-    "sv_classes"     : ["het_del", "het_dup", "het_inv"]
+    "size_ranges"    : ["200000-500000", "500000-1000000", "1000000-2000000"],
+    "vaf_ranges"     : ["2-4","5-10","10-20","20-40","40-60","95-100"],
+    "sv_classes"     : ["het_del","het_inv","het_dup"]
 
 }
