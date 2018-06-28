@@ -271,8 +271,9 @@ rule evaluation_newer_version:
                        segments  = SEGMENTS,
                        svclass   = SV_CLASSES)
     output:
-        "results/{binsize}_{method}.pdf",
-        "results/{binsize}_{method}.pdf.txt"
+        supplement = "results/{binsize}_{method}.pdf",
+        figure     = "results/{binsize}_{method}.fig.pdf",
+        table      = "results/{binsize}_{method}.pdf.txt"
     script:
         "utils/evaluation.stratified.R"
 
