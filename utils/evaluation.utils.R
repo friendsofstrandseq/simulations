@@ -1,124 +1,6 @@
 library(data.table)
 library(dplyr)
-
-find_overlapping_calls <- function(truth, calls, rec_ovl = 0.8) {
-  
-  assert_that(is.data.table(truth),
-              "chrom"   %in% colnames(truth),
-              "start"   %in% colnames(truth),
-              "end"     %in% colnames(truth)) %>% invisible
-  assert_that(nrow(truth)>0) %>% invisible
-  assert_that(is.data.table(calls),
-              "chrom"   %in% colnames(calls),
-              "start"   %in% colnames(calls),
-              "end"     %in% colnames(calls)) %>% invisible
-  
-  
-  
-  ### 1) Get unique list of loci
-  
-  # list of simulated loci (only chrom, start, end)
-  true_loci = unique(truth[, .(chrom, start, end)])
-  setkey(true_loci, chrom ,start, end)
-  true_loci[, truth_id := 1:.N]
-  
-  # list of predicted loci (chrom, start, end) --> only use real SV calls here!
-  called_loci = unique(calls[, .(chrom, start, end)])
-  setkey(called_loci, chrom, start, end)
-  called_loci[, called_id := 1:.N]
-  
-  
-  ### 1b) When there are no calls
-  if (nrow(called_loci)==0) {
-    true_loci[, called_id := NA]
-    called_loci[, `:=`(truth_id = integer(), max_overlap = integer())]
-    return(list(true_loci = true_loci,
-                called_loci = called_loci))
-  }
-  
-  
-  ### 2) Find overlap by generating all combinations of loci
-  
-  # Merge all combinations of loci by chromosoems ...
-  combined = merge(true_loci, called_loci,
-                   by = "chrom",
-                   all = T,
-                   suffixes = c("",".call"),
-                   allow.cartesian = T)
-  
-  # Mark those entries that overlap by more than xx %
-  combined$match = FALSE
-  combined[!is.na(start) & end.call > start & start.call < end & (pmin(end, end.call) - pmax(start, start.call)) / (pmax(end, end.call) - pmin(start, start.call)) >= rec_ovl,
-           match := TRUE]
-  
-  # Moreover, mark those entries that at least touch SVs
-  combined[, overlap := rep(0, .N)]
-  combined[!is.na(start) & end.call > start & start.call < end,
-           overlap := (pmin(end, end.call) - pmax(start, start.call))/(end.call - start.call)]
-  assert_that(all(combined[match == TRUE, overlap >= rec_ovl])) %>% invisible
-  
-  
-  
-  ### 3) Annotate overlapping SVs
-  
-  # First, check that matches are OK
-  assert_that(all(unique(combined[, .(chrom, start = start.call, end = end.call)])[!is.na(start), ] == called_loci[, .(chrom, start, end)]))  %>% invisible
-  assert_that(all(unique(combined[, .(chrom, start, end)])[!is.na(start)] == true_loci[, .(chrom, start, end)])) %>% invisible
-  
-  # Next, annotate "true_loci" with "called_id"
-  mult_ovl_warn = function(chrom, start, end, SD) {
-      if (nrow(SD) > 1) {
-          message("[Evaluation] Warning: ", nrow(SD), 
-                  " overlapping SV calls were found for SV ", chrom, ":", 
-                  format(start, big.mark = ","), "-", 
-                  format(end, big.mark = ","), 
-                  ". I chose only one of them")
-      }
-  }
-  combined[match == TRUE,         # Warning of more than 1 call overlap same SV
-           mult_ovl_warn(chrom, start, end, .SD), 
-           by = .(chrom, start, end)] %>% invisible
-  true_loci <- merge(true_loci,
-                     combined[match == TRUE,
-                        .(called_id = called_id[1]),
-                        by = .(chrom, start, end)],
-                     by = c("chrom", "start", "end"),
-                     all.x = T)
-  
-  # Then, annotate "called_loci" with "truth_id"
-  mult_ovl_warn = function(chrom, start, end, SD) {
-    if (nrow(SD) > 1) {
-      message("[Evaluation] Warning: ", nrow(SD), 
-              " true SVs were found to overlap the predicted SV ", 
-              chrom, ":", format(start, big.mark = ","), "-", 
-              format(end, big.mark = ","), ". I chose only one of them")
-    }
-  }
-  combined[match == TRUE, 
-           mult_ovl_warn(chrom, start.call, end.call, .SD), 
-           by = .(chrom, start.call, end.call)] %>% invisible
-  called_loci <- merge(called_loci,
-                       combined[match == TRUE, 
-                                .(truth_id = truth_id[1]),
-                                by = .(chrom, start.call, end.call)] %>%
-                                .[,.(chrom, start = start.call, end = end.call, truth_id)],
-                       by = c("chrom", "start", "end"),
-                       all.x = T)
-  
-  # At last, also annotate "called_loci" with whether they partly overlap an SV
-  called_loci <- merge(called_loci,
-                       combined[,.(max_overlap = max(overlap)), by = .(chrom, start = start.call, end = end.call)],
-                       by = c("chrom", "start", "end"),
-                       all.x = T)
-                       
-  
-  
-  # Return these loci lists
-  return(list(true_loci = true_loci,
-              called_loci = called_loci))
-}
-
-
+library(GenomicRanges)
 
 
 rename_SV_classes <- function(calls) {
@@ -251,4 +133,57 @@ categorization <- function(d, n_cells = 100) {
                               labels = paste0(vaf_boarders[1:5]*100, "-", vaf_boarders[2:6]*100, "%"),
                               ordered = T)]
   d
+}
+
+
+
+
+
+
+
+
+
+
+# New precision / recall. Use just 1bp overlap
+find_overlapping_calls <- function(truth, calls, min_bp_overlap = 1) {
+
+  assert_that(is.data.table(truth),
+              "chrom"   %in% colnames(truth),
+              "start"   %in% colnames(truth),
+              "end"     %in% colnames(truth)) %>% invisible
+  assert_that(nrow(truth)>0) %>% invisible
+  assert_that(is.data.table(calls),
+              "chrom"   %in% colnames(calls),
+              "start"   %in% colnames(calls),
+              "end"     %in% colnames(calls)) %>% invisible
+
+
+  # list of simulated loci (only chrom, start, end)
+  true_loci = unique(truth[, .(chrom, start, end)])
+  setkey(true_loci, chrom ,start, end)
+  true_loci.gr = makeGRangesFromDataFrame(true_loci, seqinfo = c(paste0("chr",1:22),"chrX","chrY"))
+
+  # list of predicted loci (chrom, start, end) --> only use real SV calls here!
+  called_loci = unique(calls[, .(chrom, start, end)])
+  setkey(called_loci, chrom, start, end)
+  called_loci.gr = makeGRangesFromDataFrame(called_loci, seqinfo = c(paste0("chr",1:22),"chrX","chrY"))
+
+  # Check that the GR is still sorted the same way
+  assert_that(all(called_loci$start == start(called_loci.gr))) %>% invisible
+  assert_that(all(true_loci$start == start(true_loci.gr))) %>% invisible
+
+  # Annotate whether calls overlap true SVs
+  called_loci[, match_true_SVs := overlapsAny(called_loci.gr, true_loci.gr, minoverlap = min_bp_overlap)]
+
+  # Annotate whether true SV is covered by calls
+  ovlp <- as.data.table(findOverlaps(called_loci.gr, true_loci.gr))
+  ovlp <- ovlp[,
+       .(covered = sum(width(intersect(called_loci.gr[queryHits], true_loci.gr[subjectHits]))) / width(true_loci.gr[subjectHits])),
+       by = subjectHits]
+
+  true_loci[, covered := 0.0]
+  true_loci[ovlp$subjectHits, covered := ovlp$covered]
+
+  return( list(true_loci   = true_loci,
+               called_loci = called_loci) )
 }

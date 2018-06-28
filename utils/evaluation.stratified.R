@@ -5,6 +5,12 @@ library(ggplot2)
 library(assertthat)
 source("utils/evaluation.utils.R")
 
+# SETTINGS:
+# minimum overlap require to say that a predicted SV matches a true call.
+min_bp_overlap   = 1
+# minimum fraction of a true SV to be coverd by SV prediction in order to be considered "found"
+min_frac_covered = 0.8
+
 
 #### START
 
@@ -54,11 +60,12 @@ message(num_truth, "/", length(input.truth), " Simulated SV call sets were not e
 ### Read SV calls
 message("[Evaluation] Reading ", length(input.calls), " data sets ...")
 regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
-Recall = NULL
-Precision = NULL
+LOCI_SUMMARY = NULL
+
 for (f in input.calls) {
 
   vars = str_match(f, regex)
+  message(" * Reading ", f)
   d = fread(f)
   assert_that("chrom"    %in% colnames(d),
               "start"    %in% colnames(d),
@@ -80,97 +87,67 @@ for (f in input.calls) {
     next
   }
   
-  # Calculate precision and recall
-  rp = recall_precision(truth, d)
-  if ("sv_call_set_empty" %in% names(rp)) {
-    message("[Evaluation] Empty call set ", f)
-  }
+  # Calculate precision and recall just based on the coordinates
+  # (ignoring single cells)
+  if (nrow(d) > 0) {
+    rp = find_overlapping_calls(truth, d, min_bp_overlap)
 
-  recall = rp[["recall"]]
-  recall[, `:=`(SIMUL_id        = as.integer(vars[2]),
-                SIMUL_minsize   = as.integer(vars[3]),
-                SIMUL_maxsize   = as.integer(vars[4]),
-                SIMUL_minvaf    = as.integer(vars[5]),
-                SIMUL_maxvaf    = as.integer(vars[6]),
-                SIMUL_svclass   = vars[7],
-                SIMUL_binsize   = as.integer(vars[8]),
-                SIMUL_fraction  = as.integer(vars[10])) ]
-  Recall = rbind(Recall, recall)
-  
-  precision = rp[["precision"]]
-  if (nrow(precision) == 0) {
-    precision[, `:=`(SIMUL_id        = integer(),
-                     SIMUL_minsize   = integer(),
-                     SIMUL_maxsize   = integer(),
-                     SIMUL_minvaf    = integer(),
-                     SIMUL_maxvaf    = integer(),
-                     SIMUL_svclass   = character(),
-                     SIMUL_binsize   = integer(),
-                     SIMUL_fraction  = integer()) ]
+    loci_summary = data.table(recall_base    = nrow(rp$true_loci),
+                              recall         = nrow(rp$true_loci[covered > min_frac_covered]),
+                              precision_base = nrow(rp$called_loci),
+                              precision      = nrow(rp$called_loci[match_true_SVs==T]),
+                              SIMUL_id        = as.integer(vars[2]),
+                              SIMUL_minsize   = as.integer(vars[3]),
+                              SIMUL_maxsize   = as.integer(vars[4]),
+                              SIMUL_minvaf    = as.integer(vars[5]),
+                              SIMUL_maxvaf    = as.integer(vars[6]),
+                              SIMUL_svclass   = vars[7],
+                              SIMUL_binsize   = as.integer(vars[8]),
+                              SIMUL_fraction  = as.integer(vars[10]))
   } else {
-    precision[, `:=`(SIMUL_id        = as.integer(vars[2]),
-                     SIMUL_minsize   = as.integer(vars[3]),
-                     SIMUL_maxsize   = as.integer(vars[4]),
-                     SIMUL_minvaf    = as.integer(vars[5]),
-                     SIMUL_maxvaf    = as.integer(vars[6]),
-                     SIMUL_svclass   = vars[7],
-                     SIMUL_binsize   = as.integer(vars[8]),
-                     SIMUL_fraction  = as.integer(vars[10])) ]
+    loci_summary = data.table(recall_base    = nrow(unique(truth[, .(chrom, start, end)])),
+                              recall         = 0,
+                              precision_base = 0,
+                              precision      = 0,
+                              SIMUL_id        = as.integer(vars[2]),
+                              SIMUL_minsize   = as.integer(vars[3]),
+                              SIMUL_maxsize   = as.integer(vars[4]),
+                              SIMUL_minvaf    = as.integer(vars[5]),
+                              SIMUL_maxvaf    = as.integer(vars[6]),
+                              SIMUL_svclass   = vars[7],
+                              SIMUL_binsize   = as.integer(vars[8]),
+                              SIMUL_fraction  = as.integer(vars[10]))
   }
-  Precision = rbind(Precision, precision)
+  LOCI_SUMMARY = rbind(LOCI_SUMMARY, loci_summary)
 }
 
 
- ### Summarize across all the different simulations
-xxx = Recall[, .(N        = .N,
-                 N_       = nrow(unique(.SD[,.(chrom, start, end)])),
-                 bp       = sum(matches_call)/.N,
-                 bp_sv    = mean(correct_gt/SV_vaf),
-                 bp_sv_gt = mean(correct_sv/SV_vaf)),
-             by = .(SIMUL_minsize,
-                    SIMUL_maxsize,
-                    SIMUL_minvaf,
-                    SIMUL_maxvaf,
-                    SIMUL_fraction,
-                    SIMUL_svclass)]
-assert_that(xxx[, all(N == N_)]) %>% invisible
-yyy = Precision[, .(N        = .N,
-                    bp       = sum(matches_SV)/.N,
-                    bp_sv    = mean(correct_sv/SV_vaf),
-                    bp_sv_gt = mean(correct_gt/SV_vaf)),
-                by = .(SIMUL_minsize,
-                       SIMUL_maxsize,
-                       SIMUL_minvaf,
-                       SIMUL_maxvaf,
-                       SIMUL_svclass,
-                       SIMUL_fraction)]
-zzz = merge(xxx,yyy, suffixes = c(".recall", ".precision"),
-            by = c("SIMUL_minsize",
-                   "SIMUL_maxsize",
-                   "SIMUL_minvaf",
-                   "SIMUL_maxvaf",
-                   "SIMUL_svclass",
-                   "SIMUL_fraction"))
 
 
-# Beatify data set prior to plotting
+### Make labels a bit nicer.
 format_Mb = function(x) {
   y = ifelse(x>=1e6, 
-         paste(round(x/1e6,1),"Mb"),
-         ifelse(x>=1e3,
-                paste(round(x/1e3,1),"kb"),
-                paste(x, "bp")))
+             paste(round(x/1e6,1),"Mb"),
+             ifelse(x>=1e3,
+                    paste(round(x/1e3,1),"kb"),
+                    paste(x, "bp")))
   return (y)
 }
-
-zzz[, SV_size := factor(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)),
+LOCI_SUMMARY[, SV_size := factor(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)),
                         levels = unique(paste0(format_Mb(SIMUL_minsize),"-",format_Mb(SIMUL_maxsize)))[order(unique(SIMUL_minsize))],
                         ordered = T)]
-zzz[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
+LOCI_SUMMARY[, SV_vaf  := factor(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"),
                         levels = unique(paste0(SIMUL_minvaf,"-",SIMUL_maxvaf,"%"))[order(unique(SIMUL_minvaf))],
                         ordered = T)]
-zzz[, SV_class := SIMUL_svclass]
-zzz = zzz[order(SIMUL_fraction, SIMUL_svclass, SIMUL_minvaf, SIMUL_minsize)]
+
+### Summarize across all the different simulations
+zzz = LOCI_SUMMARY[, .(.N,
+                       num_SVs   = sum(recall_base),
+                       num_calls = sum(precision_base),
+                       recall    = sum(recall)/sum(recall_base),
+                       precision = sum(precision)/sum(precision_base)),
+                   by = .(SV_size, SV_vaf, SV_class = SIMUL_svclass, segmentation = SIMUL_fraction) ]
+zzz = zzz[order(segmentation)]
 
 
 write.table(zzz, file = paste0(snakemake@output[[1]], ".txt"),
@@ -181,17 +158,13 @@ cairo_pdf(file = snakemake@output[[1]], width=21, height = 14, onefile=T)
 for (sv_class in unique(zzz$SV_class)) {
 
     p <- ggplot(zzz[SV_class == sv_class]) +
-      geom_path(aes(bp.recall, bp.precision),
+      geom_path(aes(recall, precision),
                 linetype = "solid", color = "darkgrey") +
-      geom_point(aes(bp.recall, bp.precision, col = SIMUL_fraction)) +
-      geom_path(aes(bp_sv.recall, bp_sv.precision),
-                linetype = "dashed") +
-      geom_point(aes(bp_sv.recall, bp_sv.precision, col = SIMUL_fraction),
-                 shape = 17) +
+      geom_point(aes(recall, precision, col = segmentation)) +
       geom_text(x = 0, y = 0, hjust = 0, vjust = 0, aes(label = paste("SVs =",V1)),
-                data = zzz[, N.recall[1], by = .(SV_size, SV_vaf)]) +
+                data = zzz[, num_SVs[1], by = .(SV_size, SV_vaf)]) +
       geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
-                data = zzz[, .(min(N.precision),max(N.precision)), by = .(SV_size, SV_vaf)]) +
+                data = zzz[, .(min(num_calls),max(num_calls)), by = .(SV_size, SV_vaf)]) +
       facet_grid(SV_size ~ SV_vaf) +
       scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
       theme_bw() +
