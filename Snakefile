@@ -273,7 +273,8 @@ rule evaluation_newer_version:
     output:
         supplement = "results/{binsize}_{method}.pdf",
         figure     = "results/{binsize}_{method}.fig.pdf",
-        table      = "results/{binsize}_{method}.pdf.txt"
+        table      = "results/{binsize}_{method}.pdf.txt",
+        jan        = "results/{binsize}_{method}.jan.pdf"
     script:
         "utils/evaluation.stratified.R"
 

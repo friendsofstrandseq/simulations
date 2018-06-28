@@ -154,7 +154,7 @@ zzz = zzz[order(segmentation)]
 write.table(zzz, file = snakemake@output[["table"]],
             quote=F, sep = "\t", row.names=F, col.names = T)
 
-cairo_pdf(file = snakemake@output[["supplement"]], width=21, height = 14, onefile=T)
+cairo_pdf(file = snakemake@output[["supplement"]], width=16, height = 12, onefile=T)
 for (sv_class in unique(zzz$SV_class)) {
 
     p <- ggplot(zzz[SV_class == sv_class]) +
@@ -181,7 +181,7 @@ dev.off()
 # More summarized version
 num_segments = zzz[,.N,by = .(SV_size, SV_class, SV_vaf)][1,N]
 plt <- ggplot(zzz) +
-  geom_path(aes(recall, precision, col = SV_vaf)) +
+  geom_path(aes(recall, precision, col = SV_vaf), size = 0.8) +
   #geom_point(aes(recall,precision, col = SV_vaf), shape = 5) +
   facet_grid(SV_size ~ SV_class) +
   theme_bw() +
@@ -191,6 +191,20 @@ plt <- ggplot(zzz) +
                     name = "Clonal fraction of SVs") +
   ggtitle("Precision/recall curves for Strand-seq simulations")
 
-cairo_pdf(file = snakemake@output[["figure"]], width=16, height = 9)
+cairo_pdf(file = snakemake@output[["figure"]], width=8, height = 6)
 print(plt)
 dev.off()
+
+
+
+# test
+plt <- ggplot(zzz[segmentation == 30]) +
+  geom_line(aes(recall, precision, col = SV_vaf, group = SV_vaf)) + 
+  geom_point(aes(recall, precision, col = SV_vaf, alpha = SV_size), size = 2) +
+  facet_wrap(~ SV_class) +
+  theme_bw() + 
+  theme(legend.position = "bottom")
+cairo_pdf(file = snakemake@output[["jan"]], width=8, height = 4)
+print(plt)
+dev.off()
+
