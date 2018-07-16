@@ -201,6 +201,8 @@ dev.off()
 plt <- ggplot(zzz[segmentation == 30]) +
   geom_line(aes(recall, precision, col = SV_vaf, group = SV_vaf)) + 
   geom_point(aes(recall, precision, col = SV_vaf, alpha = SV_size), size = 2) +
+  scale_y_continuous(limits=c(0,1)) +
+  scale_x_continuous(limits=c(0,1)) +
   facet_wrap(~ SV_class) +
   theme_bw() + 
   theme(legend.position = "bottom")
