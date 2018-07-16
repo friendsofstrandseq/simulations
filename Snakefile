@@ -1,7 +1,6 @@
 configfile: "Snake.config.json"
 import os.path
 
-
 wildcard_constraints:
     binsize   = "\d+",
     seed      = "\d+",
@@ -37,7 +36,7 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["simpleCalls_llr1", "biAllelic_llr1"]
+METHODS         = ["simpleCalls_llr1_poppriorsTRUE_regfactor10"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
@@ -219,9 +218,9 @@ rule mosaiClassifier_make_call:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}_poppriors{pop_priors,(TRUE|FALSE)}_regfactor{regfactor,[0-9]+}.txt"
     log:
-        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.{llr}.log"
+        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.{llr}.{pop_priors}.{regfactor}.log"
     script:
         "utils/mosaiClassifier_call.snakemake.R"
 
@@ -242,9 +241,9 @@ rule mosaiClassifier_make_call_biallelic:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}.txt"
+	"sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}_poppriors{poppriors}_regfactor{regfactor}.txt"
     log:
-        "log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.{llr}.log"
+	"log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{poppriors}.regfactor{regfactor}.log"
     script:
         "utils/mosaiClassifier_call_biallelic.snakemake.R"
 
@@ -264,12 +263,14 @@ rule evaluation_newer_version:
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
                        svclass   = SV_CLASSES),
-        calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{{binsize}}/{{binsize}}_fixed.{segments}/{{method}}.txt",
+        calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
                        seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
                        segments  = SEGMENTS,
-                       svclass   = SV_CLASSES)
+                       svclass   = SV_CLASSES,
+                       binsize = SIMUL_WINDOW,
+                       method = METHODS)
     output:
         supplement = "results/{binsize}_{method}.pdf",
         figure     = "results/{binsize}_{method}.fig.pdf",

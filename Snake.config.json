@@ -1,5 +1,5 @@
 {
-    "mosaicatcher"  : "/g/korbel/meiers/tools/mosaicatcher/mosaicatcher_experimental/build/mosaicatcher",
+    "mosaicatcher"  : "/opt/dev/strandseqnation/mosaicatcher/build/mosaic",
 
     "bp_density"    : {
         "fraction10"  : 0.10,
