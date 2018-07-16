@@ -162,9 +162,9 @@ for (sv_class in unique(zzz$SV_class)) {
                 linetype = "solid", color = "darkgrey") +
       geom_point(aes(recall, precision, col = segmentation)) +
       geom_text(x = 0, y = 0, hjust = 0, vjust = 0, aes(label = paste("SVs =",V1)),
-                data = zzz[, num_SVs[1], by = .(SV_size, SV_vaf)]) +
+                data = zzz[SV_class == sv_class, num_SVs[1], by = .(SV_size, SV_vaf)]) +
       geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
-                data = zzz[, .(min(num_calls),max(num_calls)), by = .(SV_size, SV_vaf)]) +
+                data = zzz[SV_class == sv_class, .(min(num_calls),max(num_calls)), by = .(SV_size, SV_vaf)]) +
       facet_grid(SV_size ~ SV_vaf) +
       scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
       theme_bw() +

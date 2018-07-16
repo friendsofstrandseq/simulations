@@ -258,11 +258,12 @@ rule mosaiClassifier_make_call_biallelic:
 
 rule evaluation_newer_version:
     input:
-        truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}/variants-{{binsize}}.txt",
+        truth = expand("simulation_new/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}/variants-{binsize}.txt",
                        seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
                        vafrange  = VAF_RANGES,
-                       svclass   = SV_CLASSES),
+                       svclass   = SV_CLASSES,
+                       binsize   = SIMUL_WINDOW),
         calls = expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/{method}.txt",
                        seed = SIMUL_SEEDS,
                        sizerange = SIZE_RANGES,
@@ -282,7 +283,8 @@ rule evaluation_newer_version:
 
 rule evaluation_meta:
     input:
-        expand("results/{{binsize}}_{method}.pdf.txt",
+        expand("results/{binsize}_{method}.pdf.txt",
+               binsize = SIMUL_WINDOW,
                method = METHODS)
     output:
         "results/meta-{binsize}.pdf"
