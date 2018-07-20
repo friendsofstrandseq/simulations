@@ -7,7 +7,7 @@ wildcard_constraints:
     windows   = "\d+_[a-zA-Z]+",
     chrom     = "[chr0-9XY]+",
     segments  = "[a-zA-Z0-9]+",
-    method    = "[a-zA-Z0-9_-]+",
+    method    = "[a-zA-Z0-9_\.]+",
     minsvsize = "\d+",
     maxsvsize = "\d+",
     minvaf    = "\d+",
@@ -36,7 +36,7 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["simpleCalls_llr1_poppriorsTRUE_regfactor10"]
+METHODS         = ["simpleCalls_llr4_poppriorsFALSE_haplotagsFALSE_gtcutoff0_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.01_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.02_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.1_regfactor10"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
@@ -51,7 +51,7 @@ rule simul:
     input:
         expand("results/meta-{binsize}.pdf",
                 binsize = SIMUL_WINDOW)
-
+###expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/plots/sv_consistency/{method}.consistency-barplot-{af}.pdf", seed = SIMUL_SEEDS, sizerange = SIZE_RANGES, vafrange  = VAF_RANGES, svclass   = SV_CLASSES, binsize = SIMUL_WINDOW, segments = SEGMENTS, method = METHODS, af = ["high","med","low","rare"])
 
 def min_coverage(wildcards):
     return round(float(config["simulation_min_reads_per_library"]) * int(wildcards.binsize) / float(config["genome_size"]))
@@ -212,15 +212,17 @@ rule install_mosaiClassifier:
         ln -s ../mosaiClassifier/utils/mosaiClassifier_call.snakemake.R
         ln -s ../mosaiClassifier/utils/mosaiClassifier_call_biallelic.snakemake.R
         ln -s ../mosaiClassifier/utils/helper.prepare_segments.R
+	ln -s ../mosaiClassifier/utils/sv_consistency_barplot.R
+	ln -s ../mosaiClassifier/utils/sv_consistency_barplot.snakemake.R
         """
 
 rule mosaiClassifier_make_call:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}_poppriors{pop_priors,(TRUE|FALSE)}_regfactor{regfactor,[0-9]+}.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}_poppriors{pop_priors,(TRUE|FALSE)}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor,[0-9]+}.txt"
     log:
-        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.{llr}.{pop_priors}.{regfactor}.log"
+        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{pop_priors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.log"
     script:
         "utils/mosaiClassifier_call.snakemake.R"
 
@@ -241,9 +243,9 @@ rule mosaiClassifier_make_call_biallelic:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-	"sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}_poppriors{poppriors}_regfactor{regfactor}.txt"
+	"sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}_poppriors{poppriors}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor}.txt"
     log:
-	"log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{poppriors}.regfactor{regfactor}.log"
+	"log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{poppriors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.log"
     script:
         "utils/mosaiClassifier_call_biallelic.snakemake.R"
 
@@ -273,10 +275,12 @@ rule evaluation_newer_version:
                        binsize = SIMUL_WINDOW,
                        method = METHODS)
     output:
-        supplement = "results/{binsize}_{method}.pdf",
-        figure     = "results/{binsize}_{method}.fig.pdf",
-        table      = "results/{binsize}_{method}.pdf.txt",
-        jan        = "results/{binsize}_{method}.jan.pdf"
+        supplement = "results/{binsize, [0-9]+}_{method}.pdf",
+        figure     = "results/{binsize, [0-9]+}_{method}.fig.pdf",
+        table      = "results/{binsize, [0-9]+}_{method}.pdf.txt",
+        jan        = "results/{binsize, [0-9]+}_{method}.jan.pdf"
+    log:
+        "log/results/{binsize, [0-9]+}_{method}.log"
     script:
         "utils/evaluation.stratified.R"
 
@@ -287,7 +291,21 @@ rule evaluation_meta:
                binsize = SIMUL_WINDOW,
                method = METHODS)
     output:
-        "results/meta-{binsize}.pdf"
+        "results/meta-{binsize, [0-9]+}.pdf"
     script:
         "utils/evaluation.meta.R"
+
+
+rule plot_SV_consistency_barplot:
+    input:
+        sv_calls  = "sv_calls/{sample}/{windows}.{bpdens}/{method}.txt",
+    output:
+        barplot_high = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-high.pdf",
+        barplot_med = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-med.pdf",
+        barplot_low = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-low.pdf",
+        barplot_rare = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-rare.pdf",
+    log:
+        "log/plot_SV_consistency/{sample}/{windows}.{bpdens}.{method}.log"
+    script:
+        "utils/sv_consistency_barplot.snakemake.R"
 
