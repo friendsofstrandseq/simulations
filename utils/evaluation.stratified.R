@@ -59,7 +59,7 @@ message(num_truth, "/", length(input.truth), " Simulated SV call sets were not e
 
 ### Read SV calls
 message("[Evaluation] Reading ", length(input.calls), " data sets ...")
-regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_-]+)\\.txt"
+regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_\\.]+)\\.txt"
 LOCI_SUMMARY = NULL
 
 for (f in input.calls) {
