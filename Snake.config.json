@@ -16,16 +16,16 @@
         "100000" : 0.5,
         "500000" : 0.4
     },
-    "simulation_min_reads_per_library" :  500000,
-    "simulation_max_reads_per_library" : 1200000,
+    "simulation_min_reads_per_library" : 300000,
+    "simulation_max_reads_per_library" : 500000,
     "simulation_alpha"                 : 0.08,
     "num_SVs_per_genome"               : 25,
     "genome_size"                      : 3e9,
     "num_cells"                        : 200,
 
     "seeds"          : [1],
-    "window_sizes"   : 50000,
-    "size_ranges"    : ["200000-500000", "500000-1000000", "1000000-2000000"],
+    "window_sizes"   : 100000,
+    "size_ranges"    : ["200000-500000", "1000000-2000000", "10000000-20000000"],
     "vaf_ranges"     : ["2-4","5-10","10-20","20-40","40-60","95-100"],
     "sv_classes"     : ["het_del","het_inv","het_dup"]
 

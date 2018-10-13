@@ -36,7 +36,7 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["simpleCalls_llr4_poppriorsFALSE_haplotagsFALSE_gtcutoff0_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.01_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.02_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor10", "simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.1_regfactor10"]
+METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor6_filterTRUE"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
@@ -220,9 +220,9 @@ rule mosaiClassifier_make_call:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}_poppriors{pop_priors,(TRUE|FALSE)}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor,[0-9]+}.txt"
+        "sv_calls/{sample}/{windows}.{bpdens}/simpleCalls_llr{llr}_poppriors{pop_priors,(TRUE|FALSE)}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor,[0-9]+}_filter{use_filter, (TRUE|FALSE)}.txt"
     log:
-        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{pop_priors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.log"
+        "log/mosaiClassifier_make_call/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{pop_priors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.filter{use_filter}.log"
     script:
         "utils/mosaiClassifier_call.snakemake.R"
 
@@ -243,9 +243,9 @@ rule mosaiClassifier_make_call_biallelic:
     input:
         probs = "sv_probabilities/{sample}/{windows}.{bpdens}/probabilities.Rdata"
     output:
-	"sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}_poppriors{poppriors}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor}.txt"
+	"sv_calls/{sample}/{windows}.{bpdens}/biAllelic_llr{llr}_poppriors{poppriors}_haplotags{use_haplotags, (TRUE|FALSE)}_gtcutoff{gtcutoff,[0-9\\.]+}_regfactor{regfactor}_filter{use_filter, (TRUE|FALSE)}.txt"
     log:
-	"log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{poppriors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.log"
+	"log/mosaiClassifier_make_call_biallelic/{sample}/{windows}.{bpdens}.llr{llr}.poppriors{poppriors}.haplotags{use_haplotags}.gtcutoff{gtcutoff}.regfactor{regfactor}.filter{use_filter}.log"
     script:
         "utils/mosaiClassifier_call_biallelic.snakemake.R"
 
