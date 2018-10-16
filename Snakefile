@@ -36,7 +36,7 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor6_filterTRUE"]
+METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.03_regfactor6_filterTRUE"]
 SEGMENTS        = ["fraction10",
                    "fraction20",
                    "fraction30",
