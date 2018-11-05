@@ -146,67 +146,8 @@ zzz = LOCI_SUMMARY[, .(.N,
                        num_calls = sum(precision_base),
                        recall    = sum(recall)/sum(recall_base),
                        precision = sum(precision)/sum(precision_base)),
-                   by = .(SV_size, SV_vaf, SV_class = SIMUL_svclass, segmentation = SIMUL_fraction) ]
-zzz = zzz[order(segmentation)]
+                   by = .(SV_size, SV_vaf, SV_class = SIMUL_svclass) ]
 
 
-
-write.table(zzz, file = snakemake@output[["table"]],
-            quote=F, sep = "\t", row.names=F, col.names = T)
-
-cairo_pdf(file = snakemake@output[["supplement"]], width=16, height = 12, onefile=T)
-for (sv_class in unique(zzz$SV_class)) {
-
-    p <- ggplot(zzz[SV_class == sv_class]) +
-      geom_path(aes(recall, precision),
-                linetype = "solid", color = "darkgrey") +
-      geom_point(aes(recall, precision, col = segmentation)) +
-      geom_text(x = 0, y = 0, hjust = 0, vjust = 0, aes(label = paste("SVs =",V1)),
-                data = zzz[SV_class == sv_class, num_SVs[1], by = .(SV_size, SV_vaf)]) +
-      geom_text(x = 0, y = 0.1, hjust = 0, vjust = 0, aes(label = paste("Calls =",V1, "-", V2)),
-                data = zzz[SV_class == sv_class, .(min(num_calls),max(num_calls)), by = .(SV_size, SV_vaf)]) +
-      facet_grid(SV_size ~ SV_vaf) +
-      scale_color_gradientn(colours = c("darkgrey","firebrick", "gold","olivedrab2","dodgerblue3")) +
-      theme_bw() +
-      theme(legend.position = "bottom") +
-      coord_cartesian(ylim = c(0,1), xlim = c(0,1)) +
-      ggtitle(sv_class)
-
-    print(p)
-}
-dev.off()
-
-
-
-# More summarized version
-num_segments = zzz[,.N,by = .(SV_size, SV_class, SV_vaf)][1,N]
-plt <- ggplot(zzz) +
-  geom_path(aes(recall, precision, col = SV_vaf), size = 0.8) +
-  #geom_point(aes(recall,precision, col = SV_vaf), shape = 5) +
-  facet_grid(SV_size ~ SV_class) +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  coord_cartesian(ylim=c(0,1), xlim = c(0,1)) +
-  scale_color_manual(values = grey.colors(num_segments, start = 0.8, end = 0),
-                    name = "Clonal fraction of SVs") +
-  ggtitle("Precision/recall curves for Strand-seq simulations")
-
-cairo_pdf(file = snakemake@output[["figure"]], width=8, height = 6)
-print(plt)
-dev.off()
-
-
-
-# test
-plt <- ggplot(zzz[segmentation == 30]) +
-  geom_line(aes(recall, precision, col = SV_vaf, group = SV_vaf)) + 
-  geom_point(aes(recall, precision, col = SV_vaf, alpha = SV_size), size = 2) +
-  scale_y_continuous(limits=c(0,1)) +
-  scale_x_continuous(limits=c(0,1)) +
-  facet_wrap(~ SV_class) +
-  theme_bw() + 
-  theme(legend.position = "bottom")
-cairo_pdf(file = snakemake@output[["jan"]], width=8, height = 4)
-print(plt)
-dev.off()
+write.table(zzz, file = snakemake@output[["table"]], quote=F, sep = "\t", row.names=F, col.names = T)
 

@@ -30,6 +30,7 @@ localrules:
 
 ### Global settings
 NUM_SVS         = config["num_SVs_per_genome"]
+CHROM           = config["chromosomes"]
 SIMUL_SEEDS     = config["seeds"]
 SIMUL_WINDOW    = config["window_sizes"]
 NUM_CELLS       = config["num_cells"]
@@ -37,21 +38,13 @@ SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
 METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.03_regfactor6_filterTRUE"]
-SEGMENTS        = ["fraction10",
-                   "fraction20",
-                   "fraction30",
-                   "fraction40",
-                   "fraction50",
-                   "fraction70",
-                   "fraction100"]
+SEGMENTS        = ["fraction100"]
 
 
 ### Main rule
 rule simul:
     input:
-        expand("results/meta-{binsize}.pdf",
-                binsize = SIMUL_WINDOW)
-###expand("sv_calls/seed{seed}_size{sizerange}_vaf{vafrange}_{svclass}-{binsize}/{binsize}_fixed.{segments}/plots/sv_consistency/{method}.consistency-barplot-{af}.pdf", seed = SIMUL_SEEDS, sizerange = SIZE_RANGES, vafrange  = VAF_RANGES, svclass   = SV_CLASSES, binsize = SIMUL_WINDOW, segments = SEGMENTS, method = METHODS, af = ["high","med","low","rare"])
+        expand("results/meta-{binsize}.pdf", binsize = SIMUL_WINDOW),
 
 def min_coverage(wildcards):
     return round(float(config["simulation_min_reads_per_library"]) * int(wildcards.binsize) / float(config["genome_size"]))
@@ -163,7 +156,7 @@ rule segmentation:
     input:
         "counts/{sample}/{file_name}.txt.gz"
     output:
-        "segmentation/{sample}/{file_name}.txt"
+        "segmentation/{sample}/{file_name}.txt.fixme"
     log:
         "log/segmentation/{sample}/{file_name}.log"
     params:
@@ -178,20 +171,26 @@ rule segmentation:
         {input} > {log} 2>&1
         """
 
+# TODO: This is a workaround because latest versions of "mosaic segment" don't compute the "bps"
+# TODO: column properly. Remove once fixed in the C++ code.
+rule fix_segmentation:
+    input:
+        "segmentation/{sample}/{window}_{file_name}.txt.fixme"
+    output:
+        "segmentation/{sample}/{window,\d+}_{file_name}.txt"
+    shell:
+        'awk \'BEGIN {{OFS="\\t"}} {{if ($1=="{wildcards.sample}") $12=int(($14-1)/100000); print}}\' {input} > {output}'
+
 # Pick a few segmentations and prepare the input files for SV classification
 rule prepare_segments:
     input:
         "segmentation/{sample}/{windows}.txt",
-        "utils/helper.prepare_segments.R"
     output:
-        "segmentation2/{sample}/{windows}.{bpdens}.txt"
+        "segmentation2/{sample}/{windows}.fraction100.txt"
     log:
-        "log/prepare_segments/{sample}/{windows}.{bpdens}.log"
-    params:
-        quantile = lambda wc: config["bp_density"][wc.bpdens]
-    script:
-        "utils/helper.prepare_segments.R"
-
+        "log/prepare_segments/{sample}/{windows}.fraction100.log"
+    shell:
+        './utils/select_segmentation.py --output_jointseg {output} {input}'
 
 
 ################################################################################
@@ -214,6 +213,8 @@ rule install_mosaiClassifier:
         ln -s ../mosaiClassifier/utils/helper.prepare_segments.R
 	ln -s ../mosaiClassifier/utils/sv_consistency_barplot.R
 	ln -s ../mosaiClassifier/utils/sv_consistency_barplot.snakemake.R
+	ln -s ../mosaiClassifier/utils/select_segmentation.py
+	ln -s ../mosaiClassifier/utils/plot-sv-calls.R
         """
 
 rule mosaiClassifier_make_call:
@@ -275,10 +276,7 @@ rule evaluation_newer_version:
                        binsize = SIMUL_WINDOW,
                        method = METHODS)
     output:
-        supplement = "results/{binsize, [0-9]+}_{method}.pdf",
-        figure     = "results/{binsize, [0-9]+}_{method}.fig.pdf",
         table      = "results/{binsize, [0-9]+}_{method}.pdf.txt",
-        jan        = "results/{binsize, [0-9]+}_{method}.jan.pdf"
     log:
         "log/results/{binsize, [0-9]+}_{method}.log"
     script:
@@ -295,17 +293,4 @@ rule evaluation_meta:
     script:
         "utils/evaluation.meta.R"
 
-
-rule plot_SV_consistency_barplot:
-    input:
-        sv_calls  = "sv_calls/{sample}/{windows}.{bpdens}/{method}.txt",
-    output:
-        barplot_high = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-high.pdf",
-        barplot_med = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-med.pdf",
-        barplot_low = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-low.pdf",
-        barplot_rare = "sv_calls/{sample}/{windows}.{bpdens}/plots/sv_consistency/{method}.consistency-barplot-rare.pdf",
-    log:
-        "log/plot_SV_consistency/{sample}/{windows}.{bpdens}.{method}.log"
-    script:
-        "utils/sv_consistency_barplot.snakemake.R"
 
