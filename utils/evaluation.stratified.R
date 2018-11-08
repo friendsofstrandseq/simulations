@@ -22,7 +22,7 @@ input.calls = snakemake@input[["calls"]]
 
 ### Read simulated SVs
 message("[Evaluation] Reading ", length(input.truth), " simulated SV sets ...")
-regex = "simulation_new/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)/variants-(\\d+).txt"
+regex = "simulation_new/seed(\\d+)_size(\\d+)-(\\d+)_vaf([0-9\\.]+)-([0-9\\.]+)_([a-z_]+)/variants-(\\d+).txt"
 Truth = NULL
 num_truth = 0
 for (f in input.truth) {
@@ -47,8 +47,8 @@ for (f in input.truth) {
   t[, `:=`(SIMUL_id = as.integer(vars[2]), 
            SIMUL_minsize = as.integer(vars[3]),
            SIMUL_maxsize = as.integer(vars[4]),
-           SIMUL_minvaf  = as.integer(vars[5]),
-           SIMUL_maxvaf  = as.integer(vars[6]),
+           SIMUL_minvaf  = as.numeric(vars[5]),
+           SIMUL_maxvaf  = as.numeric(vars[6]),
            SIMUL_svclass = vars[7],
            SIMUL_binsize = as.integer(vars[8]))]
   Truth = rbind(Truth, t)
@@ -59,7 +59,7 @@ message(num_truth, "/", length(input.truth), " Simulated SV call sets were not e
 
 ### Read SV calls
 message("[Evaluation] Reading ", length(input.calls), " data sets ...")
-regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf(\\d+)-(\\d+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_\\.]+)\\.txt"
+regex = "sv_calls/seed(\\d+)_size(\\d+)-(\\d+)_vaf([0-9\\.]+)-([0-9\\.]+)_([a-z_]+)-(\\d+)/(\\d+)_fixed\\.fraction(\\d+)/([a-zA-Z0-9_\\.]+)\\.txt"
 LOCI_SUMMARY = NULL
 
 for (f in input.calls) {
@@ -78,8 +78,8 @@ for (f in input.calls) {
   truth = Truth[SIMUL_id      == as.integer(vars[2]) &
                 SIMUL_minsize == as.integer(vars[3]) &
                 SIMUL_maxsize == as.integer(vars[4]) & 
-                SIMUL_minvaf  == as.integer(vars[5]) &
-                SIMUL_maxvaf  == as.integer(vars[6]) &
+                SIMUL_minvaf  == as.numeric(vars[5]) &
+                SIMUL_maxvaf  == as.numeric(vars[6]) &
                 SIMUL_svclass == vars[7], ]
 
   if (nrow(truth)==0) {
@@ -99,8 +99,8 @@ for (f in input.calls) {
                               SIMUL_id        = as.integer(vars[2]),
                               SIMUL_minsize   = as.integer(vars[3]),
                               SIMUL_maxsize   = as.integer(vars[4]),
-                              SIMUL_minvaf    = as.integer(vars[5]),
-                              SIMUL_maxvaf    = as.integer(vars[6]),
+                              SIMUL_minvaf    = as.numeric(vars[5]),
+                              SIMUL_maxvaf    = as.numeric(vars[6]),
                               SIMUL_svclass   = vars[7],
                               SIMUL_binsize   = as.integer(vars[8]),
                               SIMUL_fraction  = as.integer(vars[10]))
@@ -112,8 +112,8 @@ for (f in input.calls) {
                               SIMUL_id        = as.integer(vars[2]),
                               SIMUL_minsize   = as.integer(vars[3]),
                               SIMUL_maxsize   = as.integer(vars[4]),
-                              SIMUL_minvaf    = as.integer(vars[5]),
-                              SIMUL_maxvaf    = as.integer(vars[6]),
+                              SIMUL_minvaf    = as.numeric(vars[5]),
+                              SIMUL_maxvaf    = as.numeric(vars[6]),
                               SIMUL_svclass   = vars[7],
                               SIMUL_binsize   = as.integer(vars[8]),
                               SIMUL_fraction  = as.integer(vars[10]))

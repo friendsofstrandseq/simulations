@@ -10,8 +10,8 @@ wildcard_constraints:
     method    = "[a-zA-Z0-9_\.]+",
     minsvsize = "\d+",
     maxsvsize = "\d+",
-    minvaf    = "\d+",
-    maxvaf    = "\d+",
+    minvaf    = "[0-9\.]+",
+    maxvaf    = "[0-9\.]+",
     mincells  = "\d+",
     llr       = "\d"
 
@@ -37,7 +37,8 @@ NUM_CELLS       = config["num_cells"]
 SIZE_RANGES     = config["size_ranges"]
 VAF_RANGES      = config["vaf_ranges"]
 SV_CLASSES      = config["sv_classes"]
-METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor6_filterTRUE"]
+#METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0.05_regfactor6_filterTRUE"]
+METHODS         = ["simpleCalls_llr4_poppriorsTRUE_haplotagsFALSE_gtcutoff0_regfactor6_filterFALSE"]
 SEGMENTS        = ["fraction100"]
 
 
@@ -80,7 +81,7 @@ rule new_simulate_genome:
         awk -v minvaf={wildcards.minvaf} -v maxvaf={wildcards.maxvaf} \
             -v seed={wildcards.seed} \
             'BEGIN {{srand(seed); OFS="\\t"}}
-            {{ vaf = int(minvaf + 1.0 * rand() * (maxvaf - minvaf))/100.0; print $0, vaf}}' $tmp \
+            {{ vaf = (minvaf + 1.0 * rand() * (maxvaf - minvaf))/100.0; print $0, vaf}}' $tmp \
         > {output} 2> {log}
         """
 
