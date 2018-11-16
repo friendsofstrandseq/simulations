@@ -14,9 +14,9 @@
         "fraction100" : 1
     },
     "simulation_neg_binom_p" : {
-        "50000" : 0.6,
-        "100000" : 0.5,
-        "500000" : 0.4
+        "50000" : 0.28301,
+        "100000" : 0.28301,
+        "500000" : 0.28301
     },
     "simulation_min_reads_per_library" : 300000,
     "simulation_max_reads_per_library" : 500000,
